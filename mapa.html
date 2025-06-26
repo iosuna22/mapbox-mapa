@@ -5,9 +5,6 @@
     <title>Mapa con Modelo 3D</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
-    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/threebox-plugin@2.2.10/dist/threebox.min.js"></script>
     <style>
       html, body { margin: 0; padding: 0; height: 100%; }
       #map { width: 100%; height: 100%; }
@@ -16,13 +13,18 @@
   <body>
     <div id="map"></div>
 
+    <!-- SCRIPTS AL FINAL para garantizar el orden correcto -->
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/threebox-plugin@2.2.10/dist/threebox.min.js"></script>
+
     <script>
       mapboxgl.accessToken = 'pk.eyJ1IjoiaW9zdW5hYSIsImEiOiJjbWNjeGdvZGwwZTJ3Mmpxc3RwcmhhODI3In0.k4Q1fwjfujblZ11w5aGoCQ';
 
       const map = new mapboxgl.Map({
         container: 'map',
         style: 'mapbox://styles/iosunaa/cmccyocod049e01qw32wif5kn',
-        center: [-2.9231365209375193, 43.25407999761174], // Edificio Kuna
+        center: [-2.9231365209375193, 43.25407999761174],
         zoom: 17,
         pitch: 60,
         bearing: 30,
@@ -35,7 +37,7 @@
         .setLngLat([-2.9231365209375193, 43.25407999761174])
         .setPopup(
           new mapboxgl.Popup().setHTML(`
-            <strong>Edificio Kuna</strong><br/>
+            <strong>Edificio Kuna HQ</strong><br/>
             <a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser" target="_blank">Ver dashboard</a>
           `)
         )
