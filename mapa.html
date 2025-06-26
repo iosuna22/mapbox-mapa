@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Edificio Kuna Hover Tooltip</title>
+  <title>Casa Cuna con Hover y Posición Real</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js"></script>
@@ -18,14 +18,16 @@
 </head>
 <body>
   <div id="map"></div>
-
   <script>
-    mapboxgl.accessToken = 'pk.eyJ1IjoiaW9zdW5hYSIsImEiOiJjbWNjeGdvZGwwZTJ3Mmpxc3RwcmhhODI3In0.k4Q1fwjfujblZ11w5aGoCQ';
+    mapboxgl.accessToken =
+      "pk.eyJ1IjoiaW9zdW5hYSIsImEiOiJjbWNjeGdvZGwwZTJ3Mmpxc3RwcmhhODI3In0.k4Q1fwjfujblZ11w5aGoCQ";
+
+    const modelCoordinates = [-2.92322, 43.25401];
 
     const map = new mapboxgl.Map({
-      container: 'map',
-      style: 'mapbox://styles/mapbox/standard',
-      center: [-2.92319, 43.25407],
+      container: "map",
+      style: "mapbox://styles/mapbox/standard",
+      center: modelCoordinates,
       zoom: 17,
       pitch: 45,
       bearing: 0,
@@ -33,24 +35,27 @@
       maxZoom: 22
     });
 
-    let popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false });
+    const popup = new mapboxgl.Popup({
+      closeButton: false,
+      closeOnClick: false
+    });
 
-    map.on('style.load', () => {
-      map.setConfigProperty('basemap', 'lightPreset', 'day');
+    map.on("style.load", () => {
+      map.setConfigProperty("basemap", "lightPreset", "day");
 
-      // 🔻 ELIMINAR etiquetas de forma específica por id
+      // 🔻 ELIMINAR etiquetas visibles por ID
       const layers = map.getStyle().layers;
       layers.forEach(layer => {
         const id = layer.id;
         if (
-          id.includes('label') ||
-          id.includes('name') ||
-          id.includes('poi') ||
-          id.includes('road') ||
-          id.includes('place') ||
-          id.includes('transit') ||
-          id.includes('admin') ||
-          id.includes('building-number')
+          id.includes("label") ||
+          id.includes("name") ||
+          id.includes("poi") ||
+          id.includes("road") ||
+          id.includes("place") ||
+          id.includes("transit") ||
+          id.includes("admin") ||
+          id.includes("building-number")
         ) {
           try {
             map.removeLayer(id);
@@ -59,14 +64,14 @@
       });
 
       // 🔻 CLIP para eliminar edificio base
-      map.addSource('clip-casa-cuna', {
-        type: 'geojson',
+      map.addSource("clip-casa-cuna", {
+        type: "geojson",
         data: {
-          type: 'FeatureCollection',
+          type: "FeatureCollection",
           features: [{
-            type: 'Feature',
+            type: "Feature",
             geometry: {
-              type: 'Polygon',
+              type: "Polygon",
               coordinates: [[
                 [-2.92326, 43.25413],
                 [-2.92313, 43.25413],
@@ -80,59 +85,86 @@
       });
 
       map.addLayer({
-        id: 'clip-layer',
-        type: 'clip',
-        source: 'clip-casa-cuna',
+        id: "clip-layer",
+        type: "clip",
+        source: "clip-casa-cuna",
         layout: {
-          'clip-layer-types': ['model'],
-          'clip-layer-scope': ['basemap']
+          "clip-layer-types": ["model"],
+          "clip-layer-scope": ["basemap"]
         }
       });
 
-      // 🔻 Fuente del modelo 3D
-      map.addSource('edificio-kuna', {
-        type: 'geojson',
+      // 🔻 Modelo 3D
+      map.addSource("edificio-kuna", {
+        type: "geojson",
         data: {
-          type: 'Feature',
+          type: "Feature",
           geometry: {
-            type: 'Point',
-            coordinates: [-2.92319, 43.25407]
+            type: "Point",
+            coordinates: modelCoordinates
           },
           properties: {
-            'model-id': 'https://raw.githubusercontent.com/iosuna22/mapbox-mapa/main/edificio.glb',
-            'tooltip': `
-              <strong>Edificio Kuna</strong><br/>
-              <a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser"
-                 target="_blank">Ver dashboard</a>
-            `
+            "model-id": "https://raw.githubusercontent.com/iosuna22/mapbox-mapa/main/edificio.glb"
           }
         }
       });
 
       map.addLayer({
-        id: 'modelo-kuna',
-        type: 'model',
-        source: 'edificio-kuna',
-        slot: 'middle',
+        id: "modelo-kuna",
+        type: "model",
+        source: "edificio-kuna",
+        slot: "middle",
         layout: {
-          'model-id': ['get', 'model-id']
+          "model-id": ["get", "model-id"]
         },
         paint: {
-          'model-opacity': 1,
-          'model-rotation': [0, 0, 205], // ROTACIÓN AJUSTADA VISUALMENTE
-          'model-scale': [1.0, 1.0, 1.0],
-          'model-cast-shadows': false,
-          'model-emissive-strength': 0
+          "model-opacity": 1,
+          "model-rotation": [0, 0, 240],
+          "model-scale": [1.0, 1.0, 1.0],
+          "model-cast-shadows": false,
+          "model-emissive-strength": 0
         }
       });
 
-      // 🔻 Mostrar tooltip al pasar el ratón (hover)
-      map.on('mousemove', (e) => {
+      // 🔻 Capa invisible encima del modelo para detectar hover
+      map.addSource("hover-kuna", {
+        type: "geojson",
+        data: {
+          type: "FeatureCollection",
+          features: [{
+            type: "Feature",
+            geometry: {
+              type: "Point",
+              coordinates: modelCoordinates
+            },
+            properties: {
+              tooltip: `
+                <strong>Edificio Kuna</strong><br/>
+                <a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser"
+                   target="_blank">Ver dashboard</a>
+              `
+            }
+          }]
+        }
+      });
+
+      map.addLayer({
+        id: "hover-kuna-layer",
+        type: "symbol",
+        source: "hover-kuna",
+        layout: {
+          "icon-size": 0.0001,
+          "icon-image": "marker-15" // cualquier icono válido, invisible por tamaño
+        }
+      });
+
+      // 🔻 Hover: mostrar tooltip
+      map.on("mousemove", (e) => {
         const features = map.queryRenderedFeatures(e.point, {
-          layers: ['modelo-kuna']
+          layers: ["hover-kuna-layer"]
         });
 
-        map.getCanvas().style.cursor = features.length ? 'pointer' : '';
+        map.getCanvas().style.cursor = features.length ? "pointer" : "";
 
         if (features.length) {
           popup
