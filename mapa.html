@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Casa Cuna 3D - Hover tooltip</title>
+  <title>Casa Cuna 3D - Hover funcional</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js"></script>
@@ -22,7 +22,7 @@
   <script>
     mapboxgl.accessToken = 'pk.eyJ1IjoiaW9zdW5hYSIsImEiOiJjbWNjeGdvZGwwZTJ3Mmpxc3RwcmhhODI3In0.k4Q1fwjfujblZ11w5aGoCQ';
 
-    const modelCoordinates = [-2.92327, 43.25403]; // AJUSTADAS A MANO
+    const modelCoordinates = [-2.92300, 43.25406];
     const popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false });
 
     const map = new mapboxgl.Map({
@@ -39,27 +39,24 @@
     map.on('style.load', () => {
       map.setConfigProperty('basemap', 'lightPreset', 'day');
 
-      // 🔻 ELIMINAR TODAS LAS ETIQUETAS
-      const layers = map.getStyle().layers;
-      layers.forEach(layer => {
+      // 🔻 Quitar todas las etiquetas
+      map.getStyle().layers.forEach(layer => {
         const id = layer.id;
         if (
           id.includes('label') ||
           id.includes('name') ||
-          id.includes('place') ||
           id.includes('poi') ||
+          id.includes('place') ||
           id.includes('road') ||
-          id.includes('transit') ||
           id.includes('admin') ||
-          id.includes('building-number') ||
-          id.includes('water') ||
-          id.includes('airport')
+          id.includes('transit') ||
+          id.includes('building-number')
         ) {
           try { map.removeLayer(id); } catch (e) {}
         }
       });
 
-      // 🔻 CLIP para borrar edificio 3D original
+      // 🔻 Clip para eliminar el edificio base
       map.addSource('clip-casa-cuna', {
         type: 'geojson',
         data: {
@@ -69,11 +66,11 @@
             geometry: {
               type: 'Polygon',
               coordinates: [[
-                [-2.92331, 43.25408],
-                [-2.92315, 43.25408],
-                [-2.92315, 43.25398],
-                [-2.92331, 43.25398],
-                [-2.92331, 43.25408]
+                [-2.92308, 43.25411],
+                [-2.92291, 43.25411],
+                [-2.92291, 43.25400],
+                [-2.92308, 43.25400],
+                [-2.92308, 43.25411]
               ]]
             }
           }]
@@ -90,8 +87,8 @@
         }
       });
 
-      // 🔻 MODELO 3D
-      map.addSource('edificio-kuna', {
+      // 🔻 Modelo 3D
+      map.addSource('modelo-kuna', {
         type: 'geojson',
         data: {
           type: 'Feature',
@@ -108,22 +105,21 @@
       map.addLayer({
         id: 'modelo-kuna',
         type: 'model',
-        source: 'edificio-kuna',
+        source: 'modelo-kuna',
         slot: 'middle',
         layout: {
           'model-id': ['get', 'model-id']
         },
         paint: {
-          'model-opacity': 1,
-          'model-rotation': [0, 0, 223], // ROTACIÓN REVISADA
+          'model-rotation': [0, 0, 135],
           'model-scale': [1.0, 1.0, 1.0],
-          'model-cast-shadows': false,
-          'model-emissive-strength': 0
+          'model-opacity': 1,
+          'model-cast-shadows': false
         }
       });
 
-      // 🔻 CAPA INVISIBLE PARA HOVER
-      map.addSource('hover-hitbox', {
+      // 🔻 Hover con capa circle invisible
+      map.addSource('hover-area', {
         type: 'geojson',
         data: {
           type: 'FeatureCollection',
@@ -136,8 +132,9 @@
             properties: {
               tooltip: `
                 <strong>Edificio Kuna</strong><br/>
-                <a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser"
-                   target="_blank">Ver dashboard</a>`
+                <a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser" target="_blank">
+                  Ver dashboard
+                </a>`
             }
           }]
         }
@@ -145,16 +142,17 @@
 
       map.addLayer({
         id: 'hover-layer',
-        type: 'symbol',
-        source: 'hover-hitbox',
-        layout: {
-          'icon-image': 'marker-15',
-          'icon-size': 0.0001
+        type: 'circle',
+        source: 'hover-area',
+        paint: {
+          'circle-radius': 20,
+          'circle-color': '#000000',
+          'circle-opacity': 0
         }
       });
 
-      // 🔻 EVENTO DE HOVER REAL
-      map.on('mousemove', (e) => {
+      // 🔻 Evento de hover
+      map.on('mousemove', e => {
         const features = map.queryRenderedFeatures(e.point, {
           layers: ['hover-layer']
         });
@@ -163,7 +161,7 @@
 
         if (features.length) {
           popup
-            .setLngLat(features[0].geometry.coordinates)
+            .setLngLat(modelCoordinates)
             .setHTML(features[0].properties.tooltip)
             .addTo(map);
         } else {
