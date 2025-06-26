@@ -1,157 +1,149 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Mapa limpio - Edificio Kuna</title>
-    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
-    <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet" />
-    <script src="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js"></script>
-    <style>
-      body { margin: 0; padding: 0; }
-      #map { position: absolute; top: 0; bottom: 0; width: 100%; }
-      .mapboxgl-popup { max-width: 240px; }
-      .custom-popup {
-        font-family: sans-serif;
-        font-size: 14px;
-      }
-      .custom-popup a {
-        color: #0074D9;
-        text-decoration: none;
-      }
-      .custom-popup a:hover {
-        text-decoration: underline;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="map"></div>
-    <script>
-      mapboxgl.accessToken =
-        "pk.eyJ1IjoiaW9zdW5hYSIsImEiOiJjbWNjeGdvZGwwZTJ3Mmpxc3RwcmhhODI3In0.k4Q1fwjfujblZ11w5aGoCQ";
+<head>
+  <meta charset="utf-8" />
+  <title>Edificio Kuna Hover Tooltip</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet" />
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js"></script>
+  <style>
+    body { margin: 0; padding: 0; }
+    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+    .mapboxgl-popup {
+      max-width: 250px;
+      font-family: sans-serif;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
 
-      const map = new mapboxgl.Map({
-        container: "map",
-        style: "mapbox://styles/mapbox/standard",
-        center: [-2.92319, 43.25407],
-        zoom: 17,
-        pitch: 45,
-        bearing: 0,
-        minZoom: 5,
-        maxZoom: 22
+  <script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoiaW9zdW5hYSIsImEiOiJjbWNjeGdvZGwwZTJ3Mmpxc3RwcmhhODI3In0.k4Q1fwjfujblZ11w5aGoCQ';
+
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/standard',
+      center: [-2.92319, 43.25407],
+      zoom: 17,
+      pitch: 45,
+      bearing: 0,
+      minZoom: 5,
+      maxZoom: 22
+    });
+
+    let popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false });
+
+    map.on('style.load', () => {
+      map.setConfigProperty('basemap', 'lightPreset', 'day');
+
+      // 🔻 ELIMINAR etiquetas de forma específica por id
+      const layers = map.getStyle().layers;
+      layers.forEach(layer => {
+        const id = layer.id;
+        if (
+          id.includes('label') ||
+          id.includes('name') ||
+          id.includes('poi') ||
+          id.includes('road') ||
+          id.includes('place') ||
+          id.includes('transit') ||
+          id.includes('admin') ||
+          id.includes('building-number')
+        ) {
+          try {
+            map.removeLayer(id);
+          } catch (e) {}
+        }
       });
 
-      map.on("style.load", () => {
-        map.setConfigProperty("basemap", "lightPreset", "day");
-
-        // 🔻 ELIMINAR todas las etiquetas visibles
-        const layers = map.getStyle().layers;
-        layers.forEach((layer) => {
-          const id = layer.id;
-          const type = layer.type;
-          if (
-            type === "symbol" ||
-            id.includes("label") ||
-            id.includes("name") ||
-            id.includes("road") ||
-            id.includes("poi") ||
-            id.includes("place") ||
-            id.includes("admin") ||
-            id.includes("transit") ||
-            id.includes("park") ||
-            id.includes("building-number")
-          ) {
-            try {
-              map.removeLayer(id);
-            } catch (e) {}
-          }
-        });
-
-        // 🔻 CLIP para eliminar el edificio de base
-        map.addSource("clip-casa-cuna", {
-          type: "geojson",
-          data: {
-            type: "FeatureCollection",
-            features: [{
-              type: "Feature",
-              geometry: {
-                type: "Polygon",
-                coordinates: [[
-                  [-2.92326, 43.25413],
-                  [-2.92313, 43.25413],
-                  [-2.92313, 43.25401],
-                  [-2.92326, 43.25401],
-                  [-2.92326, 43.25413]
-                ]]
-              }
-            }]
-          }
-        });
-
-        map.addLayer({
-          id: "clip-layer",
-          type: "clip",
-          source: "clip-casa-cuna",
-          layout: {
-            "clip-layer-types": ["model"],
-            "clip-layer-scope": ["basemap"]
-          }
-        });
-
-        // 🔻 Fuente del modelo
-        map.addSource("edificio-kuna", {
-          type: "geojson",
-          data: {
-            type: "Feature",
+      // 🔻 CLIP para eliminar edificio base
+      map.addSource('clip-casa-cuna', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: [{
+            type: 'Feature',
             geometry: {
-              type: "Point",
-              coordinates: [-2.92319, 43.25407]
-            },
-            properties: {
-              "model-id": "https://raw.githubusercontent.com/iosuna22/mapbox-mapa/main/edificio.glb",
-              "popup": `
-                <div class="custom-popup">
-                  <strong>Edificio Kuna</strong><br/>
-                  <a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser" target="_blank">
-                    Ver dashboard
-                  </a>
-                </div>
-              `
+              type: 'Polygon',
+              coordinates: [[
+                [-2.92326, 43.25413],
+                [-2.92313, 43.25413],
+                [-2.92313, 43.25401],
+                [-2.92326, 43.25401],
+                [-2.92326, 43.25413]
+              ]]
             }
-          }
-        });
-
-        map.addLayer({
-          id: "modelo-kuna",
-          type: "model",
-          source: "edificio-kuna",
-          slot: "middle",
-          layout: {
-            "model-id": ["get", "model-id"]
-          },
-          paint: {
-            "model-opacity": 1,
-            "model-rotation": [0, 0, 225], // ROTACIÓN corregida
-            "model-scale": [1.0, 1.0, 1.0],
-            "model-cast-shadows": false,
-            "model-emissive-strength": 0
-          }
-        });
-
-        // 🔻 Clic sobre modelo usando queryRenderedFeatures
-        map.on("click", (e) => {
-          const features = map.queryRenderedFeatures(e.point, {
-            layers: ["modelo-kuna"]
-          });
-
-          if (features.length > 0) {
-            const popupHTML = features[0].properties.popup;
-            new mapboxgl.Popup()
-              .setLngLat(features[0].geometry.coordinates)
-              .setHTML(popupHTML)
-              .addTo(map);
-          }
-        });
+          }]
+        }
       });
-    </script>
-  </body>
+
+      map.addLayer({
+        id: 'clip-layer',
+        type: 'clip',
+        source: 'clip-casa-cuna',
+        layout: {
+          'clip-layer-types': ['model'],
+          'clip-layer-scope': ['basemap']
+        }
+      });
+
+      // 🔻 Fuente del modelo 3D
+      map.addSource('edificio-kuna', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [-2.92319, 43.25407]
+          },
+          properties: {
+            'model-id': 'https://raw.githubusercontent.com/iosuna22/mapbox-mapa/main/edificio.glb',
+            'tooltip': `
+              <strong>Edificio Kuna</strong><br/>
+              <a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser"
+                 target="_blank">Ver dashboard</a>
+            `
+          }
+        }
+      });
+
+      map.addLayer({
+        id: 'modelo-kuna',
+        type: 'model',
+        source: 'edificio-kuna',
+        slot: 'middle',
+        layout: {
+          'model-id': ['get', 'model-id']
+        },
+        paint: {
+          'model-opacity': 1,
+          'model-rotation': [0, 0, 205], // ROTACIÓN AJUSTADA VISUALMENTE
+          'model-scale': [1.0, 1.0, 1.0],
+          'model-cast-shadows': false,
+          'model-emissive-strength': 0
+        }
+      });
+
+      // 🔻 Mostrar tooltip al pasar el ratón (hover)
+      map.on('mousemove', (e) => {
+        const features = map.queryRenderedFeatures(e.point, {
+          layers: ['modelo-kuna']
+        });
+
+        map.getCanvas().style.cursor = features.length ? 'pointer' : '';
+
+        if (features.length) {
+          popup
+            .setLngLat(features[0].geometry.coordinates)
+            .setHTML(features[0].properties.tooltip)
+            .addTo(map);
+        } else {
+          popup.remove();
+        }
+      });
+    });
+  </script>
+</body>
 </html>
