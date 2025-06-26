@@ -1,14 +1,15 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="utf-8">
+    <meta charset="utf-8" />
     <title>Mapa limpio - Edificio Kuna</title>
-    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
-    <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet">
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet" />
     <script src="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js"></script>
     <style>
       body { margin: 0; padding: 0; }
       #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+      .mapboxgl-popup { max-width: 240px; }
       .custom-popup {
         font-family: sans-serif;
         font-size: 14px;
@@ -24,37 +25,40 @@
   </head>
   <body>
     <div id="map"></div>
-
     <script>
-      mapboxgl.accessToken = 'pk.eyJ1IjoiaW9zdW5hYSIsImEiOiJjbWNjeGdvZGwwZTJ3Mmpxc3RwcmhhODI3In0.k4Q1fwjfujblZ11w5aGoCQ';
+      mapboxgl.accessToken =
+        "pk.eyJ1IjoiaW9zdW5hYSIsImEiOiJjbWNjeGdvZGwwZTJ3Mmpxc3RwcmhhODI3In0.k4Q1fwjfujblZ11w5aGoCQ";
 
       const map = new mapboxgl.Map({
-        container: 'map',
-        style: 'mapbox://styles/mapbox/standard',
+        container: "map",
+        style: "mapbox://styles/mapbox/standard",
         center: [-2.92319, 43.25407],
         zoom: 17,
         pitch: 45,
         bearing: 0,
         minZoom: 5,
-        maxZoom: 22,
-        interactiveLayerIds: ['modelo-kuna']
+        maxZoom: 22
       });
 
-      map.on('style.load', () => {
-        map.setConfigProperty('basemap', 'lightPreset', 'day');
+      map.on("style.load", () => {
+        map.setConfigProperty("basemap", "lightPreset", "day");
 
-        // 🔻 Quitar todos los textos, etiquetas, nombres y POIs
+        // 🔻 ELIMINAR todas las etiquetas visibles
         const layers = map.getStyle().layers;
-        layers.forEach(layer => {
+        layers.forEach((layer) => {
           const id = layer.id;
           const type = layer.type;
           if (
-            type === 'symbol' ||
-            id.includes('label') ||
-            id.includes('name') ||
-            id.includes('road') ||
-            id.includes('poi') ||
-            id.includes('shield')
+            type === "symbol" ||
+            id.includes("label") ||
+            id.includes("name") ||
+            id.includes("road") ||
+            id.includes("poi") ||
+            id.includes("place") ||
+            id.includes("admin") ||
+            id.includes("transit") ||
+            id.includes("park") ||
+            id.includes("building-number")
           ) {
             try {
               map.removeLayer(id);
@@ -62,15 +66,15 @@
           }
         });
 
-        // 🔻 CLIP para eliminar el edificio base de Mapbox
-        map.addSource('clip-casa-cuna', {
-          type: 'geojson',
+        // 🔻 CLIP para eliminar el edificio de base
+        map.addSource("clip-casa-cuna", {
+          type: "geojson",
           data: {
-            type: 'FeatureCollection',
+            type: "FeatureCollection",
             features: [{
-              type: 'Feature',
+              type: "Feature",
               geometry: {
-                type: 'Polygon',
+                type: "Polygon",
                 coordinates: [[
                   [-2.92326, 43.25413],
                   [-2.92313, 43.25413],
@@ -84,27 +88,27 @@
         });
 
         map.addLayer({
-          id: 'clip-layer',
-          type: 'clip',
-          source: 'clip-casa-cuna',
+          id: "clip-layer",
+          type: "clip",
+          source: "clip-casa-cuna",
           layout: {
-            'clip-layer-types': ['model'],
-            'clip-layer-scope': ['basemap']
+            "clip-layer-types": ["model"],
+            "clip-layer-scope": ["basemap"]
           }
         });
 
-        // 🔻 Modelo 3D de Casa Cuna
-        map.addSource('edificio-kuna', {
-          type: 'geojson',
+        // 🔻 Fuente del modelo
+        map.addSource("edificio-kuna", {
+          type: "geojson",
           data: {
-            type: 'Feature',
+            type: "Feature",
             geometry: {
-              type: 'Point',
+              type: "Point",
               coordinates: [-2.92319, 43.25407]
             },
             properties: {
-              'model-id': 'https://raw.githubusercontent.com/iosuna22/mapbox-mapa/main/edificio.glb',
-              'popup': `
+              "model-id": "https://raw.githubusercontent.com/iosuna22/mapbox-mapa/main/edificio.glb",
+              "popup": `
                 <div class="custom-popup">
                   <strong>Edificio Kuna</strong><br/>
                   <a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser" target="_blank">
@@ -117,26 +121,26 @@
         });
 
         map.addLayer({
-          id: 'modelo-kuna',
-          type: 'model',
-          source: 'edificio-kuna',
-          slot: 'middle',
+          id: "modelo-kuna",
+          type: "model",
+          source: "edificio-kuna",
+          slot: "middle",
           layout: {
-            'model-id': ['get', 'model-id']
+            "model-id": ["get", "model-id"]
           },
           paint: {
-            'model-opacity': 1,
-            'model-rotation': [0, 0, 135],
-            'model-scale': [1.0, 1.0, 1.0],
-            'model-cast-shadows': false,
-            'model-emissive-strength': 0
+            "model-opacity": 1,
+            "model-rotation": [0, 0, 225], // ROTACIÓN corregida
+            "model-scale": [1.0, 1.0, 1.0],
+            "model-cast-shadows": false,
+            "model-emissive-strength": 0
           }
         });
 
-        // 🔻 Mostrar popup al hacer clic sobre el modelo
-        map.on('click', (e) => {
+        // 🔻 Clic sobre modelo usando queryRenderedFeatures
+        map.on("click", (e) => {
           const features = map.queryRenderedFeatures(e.point, {
-            layers: ['modelo-kuna']
+            layers: ["modelo-kuna"]
           });
 
           if (features.length > 0) {
