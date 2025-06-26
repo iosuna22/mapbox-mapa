@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Casa Cuna 3D - Hover funcional</title>
+  <title>Casa Cuna - Posición precisa y hover</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js"></script>
@@ -22,7 +22,7 @@
   <script>
     mapboxgl.accessToken = 'pk.eyJ1IjoiaW9zdW5hYSIsImEiOiJjbWNjeGdvZGwwZTJ3Mmpxc3RwcmhhODI3In0.k4Q1fwjfujblZ11w5aGoCQ';
 
-    const modelCoordinates = [-2.92300, 43.25406];
+    const modelCoordinates = [-2.923085, 43.254096];
     const popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false });
 
     const map = new mapboxgl.Map({
@@ -39,7 +39,7 @@
     map.on('style.load', () => {
       map.setConfigProperty('basemap', 'lightPreset', 'day');
 
-      // 🔻 Quitar todas las etiquetas
+      // 🔻 Eliminar todas las etiquetas
       map.getStyle().layers.forEach(layer => {
         const id = layer.id;
         if (
@@ -56,7 +56,7 @@
         }
       });
 
-      // 🔻 Clip para eliminar el edificio base
+      // 🔻 Clip para eliminar modelo base debajo del tuyo
       map.addSource('clip-casa-cuna', {
         type: 'geojson',
         data: {
@@ -66,11 +66,11 @@
             geometry: {
               type: 'Polygon',
               coordinates: [[
-                [-2.92308, 43.25411],
-                [-2.92291, 43.25411],
-                [-2.92291, 43.25400],
-                [-2.92308, 43.25400],
-                [-2.92308, 43.25411]
+                [-2.92315, 43.25413],
+                [-2.92300, 43.25413],
+                [-2.92300, 43.25406],
+                [-2.92315, 43.25406],
+                [-2.92315, 43.25413]
               ]]
             }
           }]
@@ -92,10 +92,7 @@
         type: 'geojson',
         data: {
           type: 'Feature',
-          geometry: {
-            type: 'Point',
-            coordinates: modelCoordinates
-          },
+          geometry: { type: 'Point', coordinates: modelCoordinates },
           properties: {
             'model-id': 'https://raw.githubusercontent.com/iosuna22/mapbox-mapa/main/edificio.glb'
           }
@@ -107,9 +104,7 @@
         type: 'model',
         source: 'modelo-kuna',
         slot: 'middle',
-        layout: {
-          'model-id': ['get', 'model-id']
-        },
+        layout: { 'model-id': ['get', 'model-id'] },
         paint: {
           'model-rotation': [0, 0, 135],
           'model-scale': [1.0, 1.0, 1.0],
@@ -118,23 +113,19 @@
         }
       });
 
-      // 🔻 Hover con capa circle invisible
+      // 🔻 Hover funcional con capa invisible
       map.addSource('hover-area', {
         type: 'geojson',
         data: {
           type: 'FeatureCollection',
           features: [{
             type: 'Feature',
-            geometry: {
-              type: 'Point',
-              coordinates: modelCoordinates
-            },
+            geometry: { type: 'Point', coordinates: modelCoordinates },
             properties: {
               tooltip: `
                 <strong>Edificio Kuna</strong><br/>
-                <a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser" target="_blank">
-                  Ver dashboard
-                </a>`
+                <a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser"
+                   target="_blank">Ver dashboard</a>`
             }
           }]
         }
@@ -146,12 +137,11 @@
         source: 'hover-area',
         paint: {
           'circle-radius': 20,
-          'circle-color': '#000000',
+          'circle-color': '#000',
           'circle-opacity': 0
         }
       });
 
-      // 🔻 Evento de hover
       map.on('mousemove', e => {
         const features = map.queryRenderedFeatures(e.point, {
           layers: ['hover-layer']
@@ -160,10 +150,9 @@
         map.getCanvas().style.cursor = features.length ? 'pointer' : '';
 
         if (features.length) {
-          popup
-            .setLngLat(modelCoordinates)
-            .setHTML(features[0].properties.tooltip)
-            .addTo(map);
+          popup.setLngLat(modelCoordinates)
+                .setHTML(features[0].properties.tooltip)
+                .addTo(map);
         } else {
           popup.remove();
         }
