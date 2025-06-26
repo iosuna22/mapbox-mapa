@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Mapa Mapbox Inclinación</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link
+      href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css"
+      rel="stylesheet"
+    />
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+      }
+      #map {
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+    <script>
+      mapboxgl.accessToken =
+        'pk.eyJ1IjoiaW9zdW5hYSIsImEiOiJjbWNjeGdvZGwwZTJ3Mmpxc3RwcmhhODI3In0.k4Q1fwjfujblZ11w5aGoCQ';
+
+      const map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/iosunaa/cmccyocod049e01qw32wif5kn',
+        center: [-3.7038, 40.4168], // Madrid
+        zoom: 11,
+        pitch: 60,      // Inclinación
+        bearing: 30,    // Rotación
+        antialias: true
+      });
+
+      map.addControl(new mapboxgl.NavigationControl());
+
+      // Ejemplo de marcador con popup
+      const marker = new mapboxgl.Marker()
+        .setLngLat([-3.7038, 40.4168])
+        .setPopup(
+          new mapboxgl.Popup().setHTML(`
+            <strong>Madrid HQ</strong><br/>
+            <a href="https://tu-grafana.com/d/madrid-dashboard" target="_blank">Ver dashboard</a>
+          `)
+        )
+        .addTo(map);
+    </script>
+  </body>
+</html>
