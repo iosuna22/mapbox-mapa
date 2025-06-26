@@ -2,12 +2,12 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Mapa Mapbox Inclinación</title>
+    <title>Mapa Mapbox con Edificio 3D</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link
-      href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css"
-      rel="stylesheet"
-    />
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/threebox-plugin@2.2.10/dist/threebox.min.js"></script>
     <style>
       html, body {
         margin: 0;
@@ -23,24 +23,22 @@
   <body>
     <div id="map"></div>
 
-    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
     <script>
-      mapboxgl.accessToken =
-        'pk.eyJ1IjoiaW9zdW5hYSIsImEiOiJjbWNjeGdvZGwwZTJ3Mmpxc3RwcmhhODI3In0.k4Q1fwjfujblZ11w5aGoCQ';
+      mapboxgl.accessToken = 'pk.eyJ1IjoiaW9zdW5hYSIsImEiOiJjbWNjeGdvZGwwZTJ3Mmpxc3RwcmhhODI3In0.k4Q1fwjfujblZ11w5aGoCQ';
 
       const map = new mapboxgl.Map({
         container: 'map',
         style: 'mapbox://styles/iosunaa/cmccyocod049e01qw32wif5kn',
         center: [-2.9231365209375193, 43.25407999761174], // Edificio Kuna
-        zoom: 11,
-        pitch: 60,      // Inclinación
-        bearing: 30,    // Rotación
+        zoom: 17,
+        pitch: 60,
+        bearing: 30,
         antialias: true
       });
 
       map.addControl(new mapboxgl.NavigationControl());
 
-      // Ejemplo de marcador con popup
+      // Añadir marcador
       const marker = new mapboxgl.Marker()
         .setLngLat([-2.9231365209375193, 43.25407999761174])
         .setPopup(
@@ -50,6 +48,25 @@
           `)
         )
         .addTo(map);
+
+      // Cargar modelo 3D con Threebox
+      map.on('style.load', () => {
+        const tb = new Threebox(
+          map,
+          map.getCanvas().getContext('webgl'),
+          { defaultLights: true }
+        );
+
+        tb.loadGLTF({
+          url: 'https://raw.githubusercontent.com/iosuna22/mapbox-mapa/main/edificio.glb',
+          scale: 1,
+          rotation: { x: 90, y: 0, z: 0 },
+          anchor: 'center',
+          coordinates: [-2.9231365209375193, 43.25407999761174]
+        }, function (model) {
+          tb.add(model);
+        });
+      });
     </script>
   </body>
 </html>
