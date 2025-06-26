@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Edificio Kuna con tooltip</title>
+    <title>Mapa limpio - Edificio Kuna</title>
     <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
     <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet">
     <script src="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js"></script>
@@ -24,6 +24,7 @@
   </head>
   <body>
     <div id="map"></div>
+
     <script>
       mapboxgl.accessToken = 'pk.eyJ1IjoiaW9zdW5hYSIsImEiOiJjbWNjeGdvZGwwZTJ3Mmpxc3RwcmhhODI3In0.k4Q1fwjfujblZ11w5aGoCQ';
 
@@ -35,22 +36,33 @@
         pitch: 45,
         bearing: 0,
         minZoom: 5,
-        maxZoom: 22
+        maxZoom: 22,
+        interactiveLayerIds: ['modelo-kuna']
       });
 
       map.on('style.load', () => {
-        // Modo claro
         map.setConfigProperty('basemap', 'lightPreset', 'day');
 
-        // Eliminar todas las etiquetas del mapa
+        // 🔻 Quitar todos los textos, etiquetas, nombres y POIs
         const layers = map.getStyle().layers;
         layers.forEach(layer => {
-          if (layer.type === 'symbol') {
-            map.removeLayer(layer.id);
+          const id = layer.id;
+          const type = layer.type;
+          if (
+            type === 'symbol' ||
+            id.includes('label') ||
+            id.includes('name') ||
+            id.includes('road') ||
+            id.includes('poi') ||
+            id.includes('shield')
+          ) {
+            try {
+              map.removeLayer(id);
+            } catch (e) {}
           }
         });
 
-        // CLIP para borrar edificio base
+        // 🔻 CLIP para eliminar el edificio base de Mapbox
         map.addSource('clip-casa-cuna', {
           type: 'geojson',
           data: {
@@ -81,7 +93,7 @@
           }
         });
 
-        // Fuente con modelo
+        // 🔻 Modelo 3D de Casa Cuna
         map.addSource('edificio-kuna', {
           type: 'geojson',
           data: {
@@ -121,7 +133,7 @@
           }
         });
 
-        // Mostrar popup al hacer clic sobre el modelo
+        // 🔻 Mostrar popup al hacer clic sobre el modelo
         map.on('click', (e) => {
           const features = map.queryRenderedFeatures(e.point, {
             layers: ['modelo-kuna']
