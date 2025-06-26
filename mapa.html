@@ -13,12 +13,12 @@
   <body>
     <div id="map"></div>
 
-    <!-- Cargamos todos los scripts con defer -->
+    <!-- SCRIPTS CORRECTOS -->
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/threebox-plugin@2.2.10/dist/threebox.min.js" defer></script>
+    <script src="https://unpkg.com/threebox@2.2.10/build/threebox.min.js" defer></script>
 
-    <!-- Script principal al final y solo se ejecuta cuando el DOM esté listo -->
+    <!-- SCRIPT PRINCIPAL -->
     <script defer>
       window.onload = function () {
         mapboxgl.accessToken = 'pk.eyJ1IjoiaW9zdW5hYSIsImEiOiJjbWNjeGdvZGwwZTJ3Mmpxc3RwcmhhODI3In0.k4Q1fwjfujblZ11w5aGoCQ';
