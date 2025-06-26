@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Modelo 3D ligero - Edificio Kuna</title>
+    <title>Edificio centrado - Casa Cuna</title>
     <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
     <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet">
     <script src="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js"></script>
@@ -19,24 +19,56 @@
       const map = new mapboxgl.Map({
         container: 'map',
         style: 'mapbox://styles/mapbox/standard',
-        center: [-2.923185, 43.254075], // Ajustado a mano
-        zoom: 16,
+        center: [-2.92319, 43.25407],
+        zoom: 17,
         pitch: 45,
         bearing: 0,
-        minZoom: 5,  // ← Permite alejarse mucho más
+        minZoom: 5,
         maxZoom: 22
       });
 
       map.on('style.load', () => {
         map.setConfigProperty('basemap', 'lightPreset', 'day');
 
+        // CLIP layer para borrar el edificio original
+        map.addSource('clip-casa-cuna', {
+          type: 'geojson',
+          data: {
+            type: 'FeatureCollection',
+            features: [{
+              type: 'Feature',
+              geometry: {
+                type: 'Polygon',
+                coordinates: [[
+                  [-2.92326, 43.25413],
+                  [-2.92313, 43.25413],
+                  [-2.92313, 43.25401],
+                  [-2.92326, 43.25401],
+                  [-2.92326, 43.25413]
+                ]]
+              }
+            }]
+          }
+        });
+
+        map.addLayer({
+          id: 'clip-layer',
+          type: 'clip',
+          source: 'clip-casa-cuna',
+          layout: {
+            'clip-layer-types': ['model'],
+            'clip-layer-scope': ['basemap']
+          }
+        });
+
+        // Modelo 3D
         map.addSource('edificio-kuna', {
           type: 'geojson',
           data: {
             type: 'Feature',
             geometry: {
               type: 'Point',
-              coordinates: [-2.923185, 43.254075]  // También ajustado
+              coordinates: [-2.92319, 43.25407]
             },
             properties: {
               'model-id': 'https://raw.githubusercontent.com/iosuna22/mapbox-mapa/main/edificio.glb'
@@ -54,7 +86,7 @@
           },
           paint: {
             'model-opacity': 1,
-            'model-rotation': [0, 0, 90],   // Rotado correctamente
+            'model-rotation': [0, 0, 135],
             'model-scale': [1.0, 1.0, 1.0],
             'model-cast-shadows': false,
             'model-emissive-strength': 0
