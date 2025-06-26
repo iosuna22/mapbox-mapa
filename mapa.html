@@ -2,9 +2,10 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Mapa con Modelo 3D</title>
+    <title>Mapa con Modelo 3D - Threebox</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/gh/jscastro76/threebox@release/dist/threebox.css" rel="stylesheet" />
     <style>
       html, body { margin: 0; padding: 0; height: 100%; }
       #map { width: 100%; height: 100%; }
@@ -13,56 +14,53 @@
   <body>
     <div id="map"></div>
 
-    <!-- SCRIPTS CORRECTOS -->
-    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js" defer></script>
-    <script src="https://unpkg.com/threebox@2.2.10/build/threebox.min.js" defer></script>
+    <!-- SCRIPTS -->
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/jscastro76/threebox@release/dist/threebox.js"></script>
 
-    <!-- SCRIPT PRINCIPAL -->
-    <script defer>
-      window.onload = function () {
-        mapboxgl.accessToken = 'pk.eyJ1IjoiaW9zdW5hYSIsImEiOiJjbWNjeGdvZGwwZTJ3Mmpxc3RwcmhhODI3In0.k4Q1fwjfujblZ11w5aGoCQ';
+    <script>
+      mapboxgl.accessToken = 'pk.eyJ1IjoiaW9zdW5hYSIsImEiOiJjbWNjeGdvZGwwZTJ3Mmpxc3RwcmhhODI3In0.k4Q1fwjfujblZ11w5aGoCQ';
 
-        const map = new mapboxgl.Map({
-          container: 'map',
-          style: 'mapbox://styles/iosunaa/cmccyocod049e01qw32wif5kn',
-          center: [-2.9231365209375193, 43.25407999761174],
-          zoom: 17,
-          pitch: 60,
-          bearing: 30,
-          antialias: true
+      const map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/iosunaa/cmccyocod049e01qw32wif5kn',
+        center: [-2.9231365209375193, 43.25407999761174],
+        zoom: 17,
+        pitch: 60,
+        bearing: 30,
+        antialias: true
+      });
+
+      map.addControl(new mapboxgl.NavigationControl());
+
+      const marker = new mapboxgl.Marker()
+        .setLngLat([-2.9231365209375193, 43.25407999761174])
+        .setPopup(
+          new mapboxgl.Popup().setHTML(`
+            <strong>Edificio Kuna HQ</strong><br/>
+            <a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser" target="_blank">Ver dashboard</a>
+          `)
+        )
+        .addTo(map);
+
+      map.on('style.load', () => {
+        const tb = new Threebox(
+          map,
+          map.getCanvas().getContext('webgl'),
+          { defaultLights: true }
+        );
+
+        tb.loadGLTF({
+          url: 'https://raw.githubusercontent.com/iosuna22/mapbox-mapa/main/edificio.glb',
+          scale: 1,
+          rotation: { x: 90, y: 0, z: 0 },
+          anchor: 'center',
+          coordinates: [-2.9231365209375193, 43.25407999761174]
+        }, function (model) {
+          tb.add(model);
         });
-
-        map.addControl(new mapboxgl.NavigationControl());
-
-        const marker = new mapboxgl.Marker()
-          .setLngLat([-2.9231365209375193, 43.25407999761174])
-          .setPopup(
-            new mapboxgl.Popup().setHTML(`
-              <strong>Edificio Kuna HQ</strong><br/>
-              <a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser" target="_blank">Ver dashboard</a>
-            `)
-          )
-          .addTo(map);
-
-        map.on('style.load', () => {
-          const tb = new Threebox(
-            map,
-            map.getCanvas().getContext('webgl'),
-            { defaultLights: true }
-          );
-
-          tb.loadGLTF({
-            url: 'https://raw.githubusercontent.com/iosuna22/mapbox-mapa/main/edificio.glb',
-            scale: 1,
-            rotation: { x: 90, y: 0, z: 0 },
-            anchor: 'center',
-            coordinates: [-2.9231365209375193, 43.25407999761174]
-          }, function (model) {
-            tb.add(model);
-          });
-        });
-      };
+      });
     </script>
   </body>
 </html>
