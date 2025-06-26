@@ -2,13 +2,24 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Edificio centrado - Casa Cuna</title>
+    <title>Edificio Kuna con tooltip</title>
     <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
     <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet">
     <script src="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js"></script>
     <style>
       body { margin: 0; padding: 0; }
       #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+      .custom-popup {
+        font-family: sans-serif;
+        font-size: 14px;
+      }
+      .custom-popup a {
+        color: #0074D9;
+        text-decoration: none;
+      }
+      .custom-popup a:hover {
+        text-decoration: underline;
+      }
     </style>
   </head>
   <body>
@@ -28,9 +39,18 @@
       });
 
       map.on('style.load', () => {
+        // Modo claro
         map.setConfigProperty('basemap', 'lightPreset', 'day');
 
-        // CLIP layer para borrar el edificio original
+        // Eliminar todas las etiquetas del mapa
+        const layers = map.getStyle().layers;
+        layers.forEach(layer => {
+          if (layer.type === 'symbol') {
+            map.removeLayer(layer.id);
+          }
+        });
+
+        // CLIP para borrar edificio base
         map.addSource('clip-casa-cuna', {
           type: 'geojson',
           data: {
@@ -61,7 +81,7 @@
           }
         });
 
-        // Modelo 3D
+        // Fuente con modelo
         map.addSource('edificio-kuna', {
           type: 'geojson',
           data: {
@@ -71,7 +91,15 @@
               coordinates: [-2.92319, 43.25407]
             },
             properties: {
-              'model-id': 'https://raw.githubusercontent.com/iosuna22/mapbox-mapa/main/edificio.glb'
+              'model-id': 'https://raw.githubusercontent.com/iosuna22/mapbox-mapa/main/edificio.glb',
+              'popup': `
+                <div class="custom-popup">
+                  <strong>Edificio Kuna</strong><br/>
+                  <a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser" target="_blank">
+                    Ver dashboard
+                  </a>
+                </div>
+              `
             }
           }
         });
@@ -90,6 +118,21 @@
             'model-scale': [1.0, 1.0, 1.0],
             'model-cast-shadows': false,
             'model-emissive-strength': 0
+          }
+        });
+
+        // Mostrar popup al hacer clic sobre el modelo
+        map.on('click', (e) => {
+          const features = map.queryRenderedFeatures(e.point, {
+            layers: ['modelo-kuna']
+          });
+
+          if (features.length > 0) {
+            const popupHTML = features[0].properties.popup;
+            new mapboxgl.Popup()
+              .setLngLat(features[0].geometry.coordinates)
+              .setHTML(popupHTML)
+              .addTo(map);
           }
         });
       });
