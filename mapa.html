@@ -22,7 +22,8 @@
   <script>
     mapboxgl.accessToken = 'pk.eyJ1IjoiaW9zdW5hYSIsImEiOiJjbWNjeGdvZGwwZTJ3Mmpxc3RwcmhhODI3In0.k4Q1fwjfujblZ11w5aGoCQ';
 
-    const modelCoordinates = [-2.9232770869449234, 43.25407307457592];
+    const modelCoordinates = [-2.923120354814539, 43.25390038359956];
+    const hoverCoordinates = [-2.9230922234065213, 43.25412575986106];
     const popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false });
 
     const map = new mapboxgl.Map({
@@ -120,7 +121,7 @@
           type: 'FeatureCollection',
           features: [{
             type: 'Feature',
-            geometry: { type: 'Point', coordinates: modelCoordinates },
+            geometry: { type: 'Point', coordinates: hoverCoordinates },
             properties: {
               tooltip: `
                 <strong>Edificio Kuna</strong><br/>
