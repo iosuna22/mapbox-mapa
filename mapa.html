@@ -31,7 +31,7 @@
       const map = new mapboxgl.Map({
         container: 'map',
         style: 'mapbox://styles/iosunaa/cmccyocod049e01qw32wif5kn',
-        center: [-3.7038, 40.4168], // Madrid
+        center: [-2.9231365209375193, 43.25407999761174], // Edificio Kuna
         zoom: 11,
         pitch: 60,      // Inclinación
         bearing: 30,    // Rotación
@@ -42,11 +42,11 @@
 
       // Ejemplo de marcador con popup
       const marker = new mapboxgl.Marker()
-        .setLngLat([-3.7038, 40.4168])
+        .setLngLat([-2.9231365209375193, 43.25407999761174])
         .setPopup(
           new mapboxgl.Popup().setHTML(`
-            <strong>Madrid HQ</strong><br/>
-            <a href="https://tu-grafana.com/d/madrid-dashboard" target="_blank">Ver dashboard</a>
+            <strong>Edificio Kuna HQ</strong><br/>
+            <a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser" target="_blank">Ver dashboard</a>
           `)
         )
         .addTo(map);
