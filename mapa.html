@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Casa Cuna - Mapa limpio con contexto</title>
+  <title>Casa Cuna - Animación completa</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js"></script>
@@ -11,7 +11,7 @@
     #map {
       position: absolute;
       top: 0; bottom: 0; width: 100%;
-      visibility: hidden; /* oculto hasta limpiar capas */
+      visibility: hidden;
     }
     .mapboxgl-popup {
       max-width: 240px;
@@ -56,34 +56,29 @@
       container: 'map',
       style: 'mapbox://styles/mapbox/streets-v12',
       center: viewKunaCoordinates,
-      zoom: 18,
+      zoom: 13,
       pitch: 45,
-      bearing: -300,
+      bearing: 0,
       minZoom: 5,
       maxZoom: 22
     });
 
-    // Limitar navegación al País Vasco
-    map.setMaxBounds([
-      [-3.5, 42.6],
-      [-1.5, 43.5]
-    ]);
+    map.setMaxBounds([[-3.5, 42.6], [-1.5, 43.5]]);
 
     map.on('load', () => {
-      // 🔻 Eliminar etiquetas menos las útiles
+      // 🔻 Filtrar etiquetas: solo dejamos place, admin, road-number, poi
       const layersToRemove = map.getStyle().layers.filter(layer =>
         ['symbol', 'line'].includes(layer.type) &&
         !(
           layer.id.includes('place') ||
           layer.id.includes('admin') ||
-          layer.id.includes('road-number')
+          layer.id.includes('road-number') ||
+          layer.id.includes('poi')
         )
       );
       for (const layer of layersToRemove) {
         try { map.removeLayer(layer.id); } catch (e) {}
       }
-
-      // 🔻 Mostrar mapa una vez limpio
       map.getContainer().style.visibility = 'visible';
 
       // Modelo 3D del Edificio Kuna
@@ -145,9 +140,7 @@
         const features = map.queryRenderedFeatures(e.point, {
           layers: ['hover-layer']
         });
-
         map.getCanvas().style.cursor = features.length ? 'pointer' : '';
-
         if (features.length) {
           popup.setLngLat(modelCoordinates)
                 .setHTML(features[0].properties.tooltip)
@@ -157,6 +150,42 @@
         }
       });
 
+      // 🔁 Animación de entrada: zoom in + rotación 360° + parada
+      setTimeout(() => {
+        map.flyTo({
+          center: viewKunaCoordinates,
+          zoom: 17,
+          pitch: 45,
+          bearing: 0,
+          speed: 0.3,
+          curve: 1.8,
+          easing: t => t,
+          essential: true
+        });
+
+        let bearing = 0;
+        const rotate = () => {
+          if (bearing >= 360) {
+            map.flyTo({
+              center: viewKunaCoordinates,
+              zoom: 18,
+              pitch: 45,
+              bearing: -300,
+              speed: 0.5,
+              curve: 1.4,
+              easing: t => t,
+              essential: true
+            });
+            return;
+          }
+          bearing += 2;
+          map.rotateTo(bearing, { duration: 40, easing: t => t });
+          requestAnimationFrame(rotate);
+        };
+        setTimeout(() => rotate(), 4000); // empieza a girar después del flyTo
+      }, 1000);
+
+      // Click leyenda → animación + popup
       document.getElementById('goToModel').addEventListener('click', () => {
         map.flyTo({
           center: viewKunaCoordinates,
