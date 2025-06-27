@@ -66,7 +66,6 @@
     map.setMaxBounds([[-3.5, 42.6], [-1.5, 43.5]]);
 
     map.on('load', () => {
-      // 🔻 Filtrar etiquetas: solo dejamos place, admin, road-number, poi
       const layersToRemove = map.getStyle().layers.filter(layer =>
         ['symbol', 'line'].includes(layer.type) &&
         !(
@@ -81,7 +80,6 @@
       }
       map.getContainer().style.visibility = 'visible';
 
-      // Modelo 3D del Edificio Kuna
       map.addSource('modelo-kuna', {
         type: 'geojson',
         data: {
@@ -107,7 +105,6 @@
         }
       });
 
-      // Hover funcional
       map.addSource('hover-area', {
         type: 'geojson',
         data: {
@@ -150,11 +147,10 @@
         }
       });
 
-      // 🔁 Animación de entrada: zoom in + rotación 360° + parada
       setTimeout(() => {
         map.flyTo({
           center: viewKunaCoordinates,
-          zoom: 17,
+          zoom: 18,
           pitch: 45,
           bearing: 0,
           speed: 0.3,
@@ -163,29 +159,30 @@
           essential: true
         });
 
-        let bearing = 0;
-        const rotate = () => {
-          if (bearing >= 360) {
-            map.flyTo({
-              center: viewKunaCoordinates,
-              zoom: 18,
-              pitch: 45,
-              bearing: -300,
-              speed: 0.5,
-              curve: 1.4,
-              easing: t => t,
-              essential: true
-            });
-            return;
-          }
-          bearing += 2;
-          map.rotateTo(bearing, { duration: 40, easing: t => t });
-          requestAnimationFrame(rotate);
-        };
-        setTimeout(() => rotate(), 4000); // empieza a girar después del flyTo
+        map.once('moveend', () => {
+          let bearing = 0;
+          const rotate = () => {
+            if (bearing >= 360) {
+              map.flyTo({
+                center: viewKunaCoordinates,
+                zoom: 18,
+                pitch: 45,
+                bearing: -300,
+                speed: 0.5,
+                curve: 1.4,
+                easing: t => t,
+                essential: true
+              });
+              return;
+            }
+            bearing += 1;
+            map.rotateTo(bearing, { duration: 100, easing: t => t });
+            setTimeout(rotate, 100);
+          };
+          rotate();
+        });
       }, 1000);
 
-      // Click leyenda → animación + popup
       document.getElementById('goToModel').addEventListener('click', () => {
         map.flyTo({
           center: viewKunaCoordinates,
