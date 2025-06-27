@@ -1,7 +1,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Casa Cuna - Mapa completo</title>
+  <title>Casa Cuna - Mapa limpio sin edificios 3D</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js"></script>
@@ -44,68 +44,22 @@
 
     const modelCoordinates = [-2.9231806364031483, 43.25397648476814];
     const hoverCoordinates = [-2.9230922234065213, 43.25412575986106];
-    const viewKunaCoordinates =[-2.9232,43.2541];
+    const viewKunaCoordinates = [-2.9232, 43.2541];
     const popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: [0, -50] });
 
     const map = new mapboxgl.Map({
       container: 'map',
-      style: 'mapbox://styles/mapbox/standard',
+      style: 'mapbox://styles/mapbox/light-v11',
       center: viewKunaCoordinates,
       zoom: 17,
       pitch: 45,
-      bearing: -300,
+      bearing: -200,
       minZoom: 5,
       maxZoom: 22
     });
 
-    map.on('style.load', () => {
-      map.setConfigProperty('basemap', 'showPlaceLabels', false);
-      map.setConfigProperty('basemap', 'showRoadLabels', false);
-      map.setConfigProperty('basemap', 'showPointOfInterestLabels', false);
-      map.setConfigProperty('basemap', 'showTransitLabels', false);
-      map.setConfigProperty('basemap', 'lightPreset', 'day');
-      map.setConfigProperty('basemap', 'font', 'Inter');
-
-      // Desactivar extrusiones genéricas (fill-extrusion)
-      const layers = map.getStyle().layers;
-      layers.forEach(layer => {
-        if (layer.type === 'fill-extrusion') {
-          map.removeLayer(layer.id);
-        }
-      });
-
-      // Clip de edificios originales
-      map.addSource('clip-casa-cuna', {
-        type: 'geojson',
-        data: {
-          type: 'FeatureCollection',
-          features: [{
-            type: 'Feature',
-            geometry: {
-              type: 'Polygon',
-              coordinates: [[
-                [-2.92324, 43.25414],
-                [-2.92300, 43.25414],
-                [-2.92300, 43.25403],
-                [-2.92324, 43.25403],
-                [-2.92324, 43.25414]
-              ]]
-            }
-          }]
-        }
-      });
-
-      map.addLayer({
-        id: 'clip-layer',
-        type: 'clip',
-        source: 'clip-casa-cuna',
-        layout: {
-          'clip-layer-types': ['model'],
-          'clip-layer-scope': ['basemap']
-        }
-      });
-
-      // Modelo 3D
+    map.on('load', () => {
+      // Modelo 3D del Edificio Kuna
       map.addSource('modelo-kuna', {
         type: 'geojson',
         data: {
@@ -182,7 +136,7 @@
           center: viewKunaCoordinates,
           zoom: 17,
           pitch: 45,
-          bearing: -300,
+          bearing: -200,
           speed: 0.5,
           curve: 2.0,
           easing: t => t,
