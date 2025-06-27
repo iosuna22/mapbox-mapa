@@ -1,13 +1,18 @@
+<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Casa Cuna - Mapa limpio sin edificios 3D</title>
+  <title>Casa Cuna - Mapa limpio con contexto</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js"></script>
   <style>
     body { margin: 0; padding: 0; }
-    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+    #map {
+      position: absolute;
+      top: 0; bottom: 0; width: 100%;
+      visibility: hidden; /* oculto hasta limpiar capas */
+    }
     .mapboxgl-popup {
       max-width: 240px;
       font-family: sans-serif;
@@ -49,32 +54,38 @@
 
     const map = new mapboxgl.Map({
       container: 'map',
-      style: 'mapbox://styles/mapbox/navigation-day-v1',
+      style: 'mapbox://styles/mapbox/streets-v12',
       center: viewKunaCoordinates,
       zoom: 18,
-      pitch: 65,
+      pitch: 45,
       bearing: -300,
       minZoom: 5,
       maxZoom: 22
     });
 
-    map.on('load', () => {
-    // 🔻 Eliminar etiquetas de calles, lugares, etc.
-    const layersToRemove = map.getStyle().layers.filter(layer =>
-      ['symbol', 'line'].includes(layer.type) &&
-      (
-       layer.id.includes('label') ||
-       layer.id.includes('place') ||
-       layer.id.includes('road') ||
-       layer.id.includes('poi') ||
-       layer.id.includes('transit') ||
-        layer.id.includes('admin')
-      )
-    );
+    // Limitar navegación al País Vasco
+    map.setMaxBounds([
+      [-3.5, 42.6],
+      [-1.5, 43.5]
+    ]);
 
-    for (const layer of layersToRemove) {
-     try { map.removeLayer(layer.id); } catch (e) {}
-    } 
+    map.on('load', () => {
+      // 🔻 Eliminar etiquetas menos las útiles
+      const layersToRemove = map.getStyle().layers.filter(layer =>
+        ['symbol', 'line'].includes(layer.type) &&
+        !(
+          layer.id.includes('place') ||
+          layer.id.includes('admin') ||
+          layer.id.includes('road-number')
+        )
+      );
+      for (const layer of layersToRemove) {
+        try { map.removeLayer(layer.id); } catch (e) {}
+      }
+
+      // 🔻 Mostrar mapa una vez limpio
+      map.getContainer().style.visibility = 'visible';
+
       // Modelo 3D del Edificio Kuna
       map.addSource('modelo-kuna', {
         type: 'geojson',
@@ -146,12 +157,11 @@
         }
       });
 
-      // Animar al hacer click en la leyenda
       document.getElementById('goToModel').addEventListener('click', () => {
         map.flyTo({
           center: viewKunaCoordinates,
           zoom: 18,
-          pitch: 65,
+          pitch: 45,
           bearing: -300,
           speed: 0.5,
           curve: 2.0,
