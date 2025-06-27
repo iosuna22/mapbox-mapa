@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Casa Cuna - Hover fijo y leyenda</title>
+  <title>Casa Cuna - Hover, Leyenda y FlyTo</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js"></script>
@@ -25,13 +25,20 @@
       border-radius: 6px;
       box-shadow: 0 0 4px rgba(0,0,0,0.25);
     }
+    #legend a {
+      color: #0074D9;
+      text-decoration: none;
+    }
+    #legend a:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
   <div id="map"></div>
   <div id="legend">
     <strong>Leyenda:</strong><br/>
-    🏛 Edificio Kuna (modelo 3D)
+    🏛 <a href="#" onclick="centrarEnEdificio(event)">Edificio Kuna</a>
   </div>
 
   <script>
@@ -52,10 +59,41 @@
       maxZoom: 22
     });
 
+    function centrarEnEdificio(e) {
+      e.preventDefault();
+
+      // Paso 1: Zoom out
+      map.flyTo({
+        center: modelCoordinates,
+        zoom: 15,
+        speed: 0.6,
+        essential: true
+      });
+
+      // Paso 2: Zoom in después de 1.5s
+      setTimeout(() => {
+        map.flyTo({
+          center: modelCoordinates,
+          zoom: 18,
+          pitch: 45,
+          bearing: 0,
+          speed: 0.8,
+          essential: true
+        });
+
+        // Mostrar popup al llegar
+        popup.setLngLat(modelCoordinates)
+              .setHTML(`
+                <strong>Edificio Kuna</strong><br/>
+                <a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser"
+                   target="_blank">Ver dashboard</a>`)
+              .addTo(map);
+      }, 1500);
+    }
+
     map.on('style.load', () => {
       map.setConfigProperty('basemap', 'lightPreset', 'day');
 
-      // 🔻 Eliminar etiquetas
       map.getStyle().layers.forEach(layer => {
         const id = layer.id;
         if (
@@ -67,7 +105,6 @@
         }
       });
 
-      // 🔻 Clip para borrar edificios base
       map.addSource('clip-casa-cuna', {
         type: 'geojson',
         data: {
@@ -98,7 +135,6 @@
         }
       });
 
-      // 🔻 Modelo 3D
       map.addSource('modelo-kuna', {
         type: 'geojson',
         data: {
@@ -124,7 +160,6 @@
         }
       });
 
-      // 🔻 Hover (tooltip)
       map.addSource('hover-area', {
         type: 'geojson',
         data: {
