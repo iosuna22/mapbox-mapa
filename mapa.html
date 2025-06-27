@@ -2,17 +2,13 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Casa Cuna - Solo edificios altos extruidos</title>
+  <title>Casa Cuna - Edificios extruidos mayores de 15m</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js"></script>
   <style>
     body { margin: 0; padding: 0; }
-    #map {
-      position: absolute;
-      top: 0; bottom: 0; width: 100%;
-      visibility: hidden;
-    }
+    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
     .mapboxgl-popup {
       max-width: 240px;
       font-family: sans-serif;
@@ -56,41 +52,15 @@
       container: 'map',
       style: 'mapbox://styles/mapbox/streets-v12',
       center: viewKunaCoordinates,
-      zoom: 13,
+      zoom: 15,
       pitch: 45,
-      bearing: 0,
+      bearing: -300,
       minZoom: 5,
       maxZoom: 22
     });
 
-    map.setMaxBounds([[-3.5, 42.6], [-1.5, 43.5]]);
-
     map.on('load', () => {
-      const layersToRemove = map.getStyle().layers.filter(layer =>
-        ['symbol', 'line'].includes(layer.type)
-      );
-      for (const layer of layersToRemove) {
-        try { map.removeLayer(layer.id); } catch (e) {}
-      }
-
-      // 🔻 Solo extruir edificios altos (mayores de 20m)
-      map.addLayer({
-        id: 'extrude-tall-buildings',
-        source: 'composite',
-        'source-layer': 'building',
-        filter: ['all', ['==', 'extrude', 'true'], ['>=', ['get', 'height'], 20]],
-        type: 'fill-extrusion',
-        minzoom: 15,
-        paint: {
-          'fill-extrusion-color': '#999',
-          'fill-extrusion-height': ['get', 'height'],
-          'fill-extrusion-base': ['get', 'min_height'],
-          'fill-extrusion-opacity': 0.6
-        }
-      });
-
-      map.getContainer().style.visibility = 'visible';
-
+      // Cargar modelo 3D
       map.addSource('modelo-kuna', {
         type: 'geojson',
         data: {
@@ -116,6 +86,22 @@
         }
       });
 
+      // Edificios extruidos > 15m
+      map.addLayer({
+        id: 'extruded-buildings',
+        type: 'fill-extrusion',
+        source: 'composite',
+        'source-layer': 'building',
+        filter: ['>', 'height', 15],
+        paint: {
+          'fill-extrusion-color': '#aaa',
+          'fill-extrusion-height': ['get', 'height'],
+          'fill-extrusion-base': ['coalesce', ['get', 'min_height'], 0],
+          'fill-extrusion-opacity': 0.6
+        }
+      });
+
+      // Hover funcional
       map.addSource('hover-area', {
         type: 'geojson',
         data: {
@@ -124,10 +110,7 @@
             type: 'Feature',
             geometry: { type: 'Point', coordinates: hoverCoordinates },
             properties: {
-              tooltip: `
-                <strong>Edificio Kuna</strong><br/>
-                <a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser"
-                   target="_blank">Ver dashboard</a>`
+              tooltip: `<strong>Edificio Kuna</strong><br/><a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser" target="_blank">Ver dashboard</a>`
             }
           }]
         }
@@ -145,32 +128,16 @@
       });
 
       map.on('mousemove', e => {
-        const features = map.queryRenderedFeatures(e.point, {
-          layers: ['hover-layer']
-        });
+        const features = map.queryRenderedFeatures(e.point, { layers: ['hover-layer'] });
         map.getCanvas().style.cursor = features.length ? 'pointer' : '';
         if (features.length) {
-          popup.setLngLat(modelCoordinates)
-                .setHTML(features[0].properties.tooltip)
-                .addTo(map);
+          popup.setLngLat(modelCoordinates).setHTML(features[0].properties.tooltip).addTo(map);
         } else {
           popup.remove();
         }
       });
 
-      setTimeout(() => {
-        map.flyTo({
-          center: viewKunaCoordinates,
-          zoom: 18,
-          pitch: 45,
-          bearing: -300,
-          speed: 0.5,
-          curve: 1.8,
-          easing: t => t,
-          essential: true
-        });
-      }, 1000);
-
+      // Click leyenda
       document.getElementById('goToModel').addEventListener('click', () => {
         map.flyTo({
           center: viewKunaCoordinates,
