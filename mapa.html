@@ -66,11 +66,28 @@
     });
 
     map.on('style.load', () => {
-      // Eliminar etiquetas y símbolos para limpiar visualmente
+      // Eliminar símbolos excepto calles y POIs útiles
       const layers = map.getStyle().layers;
       for (const layer of layers) {
-        if (layer.type === 'symbol' || layer.id.includes('label') || layer.id.includes('road') || layer.id.includes('place') || layer.id.includes('poi') || layer.id.includes('transit')) {
-          try { map.removeLayer(layer.id); } catch (e) {}
+        if (layer.type === 'symbol') {
+          const id = layer.id.toLowerCase();
+          const isRoadLabel = id.includes('road');
+          const isAllowedPoi =
+            id.includes('poi') &&
+            !id.includes('restaurant') &&
+            !id.includes('cafe') &&
+            !id.includes('bar') &&
+            !id.includes('hotel') &&
+            !id.includes('shop') &&
+            !id.includes('store') &&
+            !id.includes('bakery') &&
+            !id.includes('mall') &&
+            !id.includes('clothes') &&
+            !id.includes('tourism');
+
+          if (!isRoadLabel && !isAllowedPoi) {
+            try { map.removeLayer(layer.id); } catch (e) {}
+          }
         }
       }
 
@@ -145,7 +162,15 @@
         }
       });
 
+      // Evento optimizado con throttle para mostrar el tooltip
+      let lastCheck = 0;
+      const throttleMs = 150;
+
       map.on('mousemove', e => {
+        const now = Date.now();
+        if (now - lastCheck < throttleMs) return;
+        lastCheck = now;
+
         const features = map.queryRenderedFeatures(e.point, { layers: ['hover-layer'] });
         map.getCanvas().style.cursor = features.length ? 'pointer' : '';
         if (features.length) {
@@ -155,6 +180,7 @@
         }
       });
 
+      // Fly al iniciar
       map.flyTo({
         center: viewKunaCoordinates,
         zoom: 18,
@@ -166,6 +192,7 @@
         essential: true
       });
 
+      // Botón de leyenda
       document.getElementById('goToModel').addEventListener('click', () => {
         map.flyTo({
           center: viewKunaCoordinates,
