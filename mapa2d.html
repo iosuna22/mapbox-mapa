@@ -26,13 +26,43 @@
       cursor: pointer;
       text-decoration: underline;
     }
+    /* Loader visual */
+    #loader {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    .spinner {
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #3498db;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 10px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
   <div id="map"></div>
   <div id="legend">
     <strong>Leyenda:</strong><br/>
-    <a id="goToModel">Edificio Kuna</a>
+    <a id="goToModel" role="button" aria-label="Centrar mapa en Edificio Kuna">Edificio Kuna</a>
+  </div>
+  <!-- Loader visual -->
+  <div id="loader">
+    <div class="spinner"></div>
+    <p>Cargando mapa...</p>
   </div>
 
   <script>
@@ -65,16 +95,46 @@
       maxZoom: 22
     });
 
+    // Función para ejecutar flyTo y ocultar loader
+    const executeFlyTo = () => {
+      document.getElementById('loader').style.display = 'none';
+      map.flyTo({
+        center: viewKunaCoordinates,
+        zoom: 18,
+        pitch: 45,
+        bearing: -300,
+        speed: 0.5,
+        curve: 1.8,
+        easing: t => t,
+        essential: true
+      });
+    };
+
+    // Espera a que los tiles estén cargados (evento 'idle')
     map.on('style.load', () => {
-      // Eliminar etiquetas y símbolos para limpiar visualmente
+      map.once('idle', executeFlyTo);
+    });
+
+    // Configuración de capas y eventos
+    map.on('style.load', () => {
+      // Eliminar TODOS los símbolos (labels de calles, POIs, etc.)
       const layers = map.getStyle().layers;
       for (const layer of layers) {
-        if (layer.type === 'symbol' || layer.id.includes('label') || layer.id.includes('road') || layer.id.includes('place') || layer.id.includes('poi') || layer.id.includes('transit')) {
+        if (layer.type === 'symbol') {
           try { map.removeLayer(layer.id); } catch (e) {}
         }
       }
 
-      // Edificios extruidos fuera de la parcela
+      // Opcional: Eliminar iconos de POIs (si existen en otras capas)
+      const layersToRemove = [
+        'poi-label', 'transit-label', 'airport-label', 
+        'road-number-shield', 'road-label'
+      ];
+      layersToRemove.forEach(id => {
+        if (map.getLayer(id)) map.removeLayer(id);
+      });
+
+      // Añadir capas (extruded-buildings, modelo-kuna, hover-area)
       map.addLayer({
         id: 'extruded-buildings',
         type: 'fill-extrusion',
@@ -93,7 +153,6 @@
         }
       });
 
-      // Modelo GLB personalizado
       map.addSource('modelo-kuna', {
         type: 'geojson',
         data: {
@@ -119,7 +178,6 @@
         }
       });
 
-      // Área de hover para mostrar el tooltip
       map.addSource('hover-area', {
         type: 'geojson',
         data: {
@@ -145,7 +203,15 @@
         }
       });
 
+      // Evento para tooltip
+      let lastCheck = 0;
+      const throttleMs = 150;
+
       map.on('mousemove', e => {
+        const now = Date.now();
+        if (now - lastCheck < throttleMs) return;
+        lastCheck = now;
+
         const features = map.queryRenderedFeatures(e.point, { layers: ['hover-layer'] });
         map.getCanvas().style.cursor = features.length ? 'pointer' : '';
         if (features.length) {
@@ -155,17 +221,7 @@
         }
       });
 
-      map.flyTo({
-        center: viewKunaCoordinates,
-        zoom: 18,
-        pitch: 45,
-        bearing: -300,
-        speed: 0.5,
-        curve: 1.8,
-        easing: t => t,
-        essential: true
-      });
-
+      // Botón de leyenda
       document.getElementById('goToModel').addEventListener('click', () => {
         map.flyTo({
           center: viewKunaCoordinates,
