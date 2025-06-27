@@ -1,50 +1,35 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <title>Casa Cuna – V3 con edificios 3D sin etiquetas</title>
-  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet" />
+  <meta charset="utf-8">
+  <title>Casa Cuna – GL JS v3 + Clip + Sin etiquetas</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet">
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js"></script>
   <style>
-    body { margin: 0; padding: 0; }
-    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+    body, html { margin:0; padding:0; height:100%; }
+    #map { position:absolute; width:100%; height:100%; }
     #legend {
-      position: absolute;
-      bottom: 20px; left: 20px;
+      position: absolute; bottom: 20px; left: 20px;
       background: rgba(255,255,255,0.9);
-      padding: 10px;
-      font-family: sans-serif;
-      font-size: 14px;
-      border-radius: 5px;
-      box-shadow: 0 0 5px rgba(0,0,0,0.3);
+      padding: 10px; font-family: sans-serif; font-size:14px;
+      border-radius:5px; box-shadow:0 0 5px rgba(0,0,0,0.3);
       z-index: 1;
     }
-    #legend a { color: #0077ff; cursor: pointer; text-decoration: underline; }
+    #legend a { color:#0077ff; cursor:pointer; text-decoration:underline; }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <div id="legend">
-    <strong>Leyenda:</strong><br/>
-    <a id="goToModel">Edificio Kuna</a>
-  </div>
-
+  <div id="legend"><strong>Leyenda:</strong><br/><a id="goToModel">Ver Casa Cuna</a></div>
   <script>
     mapboxgl.accessToken = 'pk.eyJ1IjoiaW9zdW5hYSIsImEiOiJjbWNjeGdvZGwwZTJ3Mmpxc3RwcmhhODI3In0.k4Q1fwjfujblZ11w5aGoCQ';
 
-    const modelCoords = [-2.92318, 43.2539765];
     const viewCoords = [-2.9232, 43.2541];
-
-    const clipPolygon = {
-      type: 'Polygon',
-      coordinates: [[
-        [-2.92324, 43.25414],
-        [-2.92300, 43.25414],
-        [-2.92300, 43.25403],
-        [-2.92324, 43.25403],
-        [-2.92324, 43.25414]
-      ]]
+    const modelCoords = [-2.92318, 43.2539765];
+    const clipPoly = {
+      type:'Polygon',
+      coordinates:[[[-2.92324,43.25414],[-2.92300,43.25414],[-2.92300,43.25403],[-2.92324,43.25403],[-2.92324,43.25414]]]
     };
 
     const map = new mapboxgl.Map({
@@ -58,93 +43,54 @@
     });
 
     map.on('style.load', () => {
-      // 🧹 Eliminar símbolos/POIs para mejorar rendimiento
-      map.getStyle().layers.forEach(layer => {
-        if (layer.type === 'symbol') {
-          try { map.removeLayer(layer.id); } catch (e) {}
+      // 🔥 1) Eliminar absolutamente todos los símbolos/etiquetas
+      map.getStyle().layers.forEach(l => {
+        if (l.type === 'symbol') {
+          try { map.removeLayer(l.id); } catch {}
         }
       });
 
-      // 🎯 Añadir clip-layer ANTES de edificios
-      map.addSource('parcel', {
-        type: 'geojson',
-        data: {
-          type: 'FeatureCollection',
-          features: [{ type: 'Feature', geometry: clipPolygon }]
-        }
-      });
+      // 🔧 2) Fuente GeoJSON con la parcela
+      map.addSource('clip-source', { type: 'geojson', data: { type:'FeatureCollection', features:[{type:'Feature', geometry:clipPoly }] } });
 
-      const targetBeforeLayer = map.getStyle().layers.find(l => l.id === 'building-3d')?.id;
-
+      // 🔧 3) Insertar clip-layer justo antes de building-3d
+      const beforeId = map.getStyle().layers.find(l => l.id === 'building-3d')?.id;
       map.addLayer({
-        id: 'clip-area',
+        id: 'clip-layer',
         type: 'clip',
-        source: 'parcel',
-        layout: {
-          'clip-layer-types': ['fill-extrusion', 'symbol', 'model']
-        }
-      }, targetBeforeLayer);
+        source: 'clip-source',
+        layout: { 'clip-layer-types':['fill-extrusion','model','symbol'], 'clip-layer-scope':['basemap'] }
+      }, beforeId);
 
-      // 🧱 Línea de depuración (puedes quitar esta capa si no la necesitas)
+      // 💡 4) Línea roja de debug (opcional)
       map.addLayer({
         id: 'clip-debug',
         type: 'line',
-        source: 'parcel',
-        paint: {
-          'line-color': '#f00',
-          'line-width': 2,
-          'line-dasharray': [2, 2]
-        }
+        source: 'clip-source',
+        paint: { 'line-color':'red', 'line-width':2, 'line-dasharray':[2,2] }
       });
 
-      // 🧍 Modelo GLB
-      map.addSource('modelo-kuna', {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          geometry: { type: 'Point', coordinates: modelCoords },
-          properties: {
-            'model-id': 'https://raw.githubusercontent.com/iosuna22/mapbox-mapa/main/edificio.glb'
-          }
-        }
+      // 🏗 5) Modelo 3D
+      map.addSource('model-source', {
+        type:'geojson',
+        data:{ type:'Feature', geometry:{type:'Point',coordinates:modelCoords}, properties:{ 'model-id':'https://raw.githubusercontent.com/iosuna22/mapbox-mapa/main/edificio.glb' } }
       });
-
       map.addLayer({
-        id: 'modelo-kuna',
-        type: 'model',
-        source: 'modelo-kuna',
-        slot: 'middle',
-        layout: { 'model-id': ['get', 'model-id'] },
-        paint: {
-          'model-rotation': [0, 0, 65],
-          'model-scale': [1, 1, 1],
-          'model-opacity': 1,
-          'model-cast-shadows': false
-        }
+        id:'model-layer',
+        type:'model',
+        source:'model-source',
+        slot:'middle',
+        layout:{ 'model-id':['get','model-id'] },
+        paint:{ 'model-rotation':[0,0,65],'model-scale':[1,1,1],'model-opacity':1,'model-cast-shadows':false }
       });
 
-      // 🛫 Animación inicial
-      map.flyTo({
-        center: viewCoords,
-        zoom: 18,
-        pitch: 45,
-        bearing: -300,
-        speed: 0.5,
-        curve: 2,
-        easing: t => t
-      });
+      // ✈ Fly inicial
+      map.flyTo({ center:viewCoords, zoom:18, pitch:45, bearing:-300, speed:0.5, curve:2 });
 
-      document.getElementById('goToModel').addEventListener('click', () => {
-        map.flyTo({
-          center: viewCoords,
-          zoom: 18,
-          pitch: 45,
-          bearing: -300,
-          speed: 0.5,
-          curve: 2,
-          easing: t => t
-        });
-      });
+      // 📌 Botón legend
+      document.getElementById('goToModel').onclick = () => {
+        map.flyTo({ center:viewCoords, zoom:18, pitch:45, bearing:-300, speed:0.5, curve:2 });
+      };
     });
   </script>
 </body>
