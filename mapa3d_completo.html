@@ -31,13 +31,43 @@
       cursor: pointer;
       text-decoration: underline;
     }
+    /* Loader visual */
+    #loader {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    .spinner {
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #3498db;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 10px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
   <div id="map"></div>
   <div id="legend">
     <strong>Leyenda:</strong><br/>
-    <a id="goToModel">Edificio Kuna</a>
+    <a id="goToModel" role="button" aria-label="Centrar mapa en Edificio Kuna">Edificio Kuna</a>
+  </div>
+  <!-- Loader visual -->
+  <div id="loader">
+    <div class="spinner"></div>
+    <p>Cargando mapa...</p>
   </div>
 
   <script>
@@ -45,21 +75,44 @@
 
     const modelCoordinates = [-2.9231806364031483, 43.25397648476814];
     const hoverCoordinates = [-2.9230922234065213, 43.25412575986106];
-    const viewKunaCoordinates =[-2.9232,43.2541];
+    const viewKunaCoordinates = [-2.9232, 43.2541];
+    const initialViewCoordinates = [-2.9232, 43.2541]; // Punto inicial (puedes cambiarlo)
     const popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: [0, -50] });
 
     const map = new mapboxgl.Map({
       container: 'map',
       style: 'mapbox://styles/mapbox/standard',
-      center: viewKunaCoordinates,
-      zoom: 18,
-      pitch: 60,
-      bearing: -300,
+      center: initialViewCoordinates, // Centro inicial (alejado)
+      zoom: 12, // Zoom inicial bajo
+      pitch: 0, // Sin inclinación inicial
+      bearing: 0, // Sin rotación inicial
       minZoom: 5,
       maxZoom: 22
     });
 
+    // Función para ejecutar flyTo y ocultar loader
+    const executeFlyTo = () => {
+      document.getElementById('loader').style.display = 'none'; // Oculta el loader
+      map.flyTo({
+        center: viewKunaCoordinates,
+        zoom: 18,
+        pitch: 60,
+        bearing: -300,
+        speed: 0.5,
+        curve: 1.8,
+        easing: t => t,
+        essential: true
+      });
+    };
+
+    // Espera a que el mapa esté completamente cargado (evento 'idle')
+    map.on('load', () => {
+      map.once('idle', executeFlyTo); // FlyTo solo cuando los tiles estén listos
+    });
+
+    // Configuración del estilo y capas
     map.on('style.load', () => {
+      // Deshabilitar todas las etiquetas (POIs, calles, etc.)
       map.setConfigProperty('basemap', 'showPlaceLabels', false);
       map.setConfigProperty('basemap', 'showRoadLabels', false);
       map.setConfigProperty('basemap', 'showPointOfInterestLabels', false);
@@ -67,6 +120,7 @@
       map.setConfigProperty('basemap', 'lightPreset', 'day');
       map.setConfigProperty('basemap', 'font', 'Inter');
 
+      // Capa de recorte (clip) para el modelo
       map.addSource('clip-casa-cuna', {
         type: 'geojson',
         data: {
@@ -97,6 +151,7 @@
         }
       });
 
+      // Modelo 3D del edificio
       map.addSource('modelo-kuna', {
         type: 'geojson',
         data: {
@@ -122,6 +177,7 @@
         }
       });
 
+      // Área interactiva para el popup
       map.addSource('hover-area', {
         type: 'geojson',
         data: {
@@ -150,7 +206,7 @@
         }
       });
 
-      // 🧠 THROTTLE del evento mousemove
+      // Evento para mostrar/ocultar el popup
       let lastCheck = 0;
       const throttleMs = 150;
 
@@ -174,6 +230,7 @@
         }
       });
 
+      // Botón para centrar en el modelo
       document.getElementById('goToModel').addEventListener('click', () => {
         map.flyTo({
           center: viewKunaCoordinates,
