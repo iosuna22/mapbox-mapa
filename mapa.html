@@ -97,7 +97,7 @@
 
     // Función para ejecutar flyTo y ocultar loader
     const executeFlyTo = () => {
-      document.getElementById('loader').style.display = 'none'; // Oculta el loader
+      document.getElementById('loader').style.display = 'none';
       map.flyTo({
         center: viewKunaCoordinates,
         zoom: 18,
@@ -112,35 +112,27 @@
 
     // Espera a que los tiles estén cargados (evento 'idle')
     map.on('style.load', () => {
-      map.once('idle', executeFlyTo); // Usamos 'once' para que solo se ejecute una vez
+      map.once('idle', executeFlyTo);
     });
 
-    // Configuración de capas y eventos (igual que antes)
+    // Configuración de capas y eventos
     map.on('style.load', () => {
-      // Eliminar símbolos innecesarios
+      // Eliminar TODOS los símbolos (labels de calles, POIs, etc.)
       const layers = map.getStyle().layers;
       for (const layer of layers) {
         if (layer.type === 'symbol') {
-          const id = layer.id.toLowerCase();
-          const isRoadLabel = id.includes('road');
-          const isAllowedPoi =
-            id.includes('poi') &&
-            !id.includes('restaurant') &&
-            !id.includes('cafe') &&
-            !id.includes('bar') &&
-            !id.includes('hotel') &&
-            !id.includes('shop') &&
-            !id.includes('store') &&
-            !id.includes('bakery') &&
-            !id.includes('mall') &&
-            !id.includes('clothes') &&
-            !id.includes('tourism');
-
-          if (!isRoadLabel && !isAllowedPoi) {
-            try { map.removeLayer(layer.id); } catch (e) {}
-          }
+          try { map.removeLayer(layer.id); } catch (e) {}
         }
       }
+
+      // Opcional: Eliminar iconos de POIs (si existen en otras capas)
+      const layersToRemove = [
+        'poi-label', 'transit-label', 'airport-label', 
+        'road-number-shield', 'road-label'
+      ];
+      layersToRemove.forEach(id => {
+        if (map.getLayer(id)) map.removeLayer(id);
+      });
 
       // Añadir capas (extruded-buildings, modelo-kuna, hover-area)
       map.addLayer({
