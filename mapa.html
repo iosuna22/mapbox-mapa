@@ -2,18 +2,13 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Casa Cuna - Mapa completo</title>
+  <title>Casa Cuna – Modelo sin superposición</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js"></script>
   <style>
-    body { margin: 0; padding: 0; }
-    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
-    .mapboxgl-popup {
-      max-width: 240px;
-      font-family: sans-serif;
-      font-size: 14px;
-    }
+    body { margin:0; padding:0; }
+    #map { position:absolute; top:0; bottom:0; width:100%; }
     #legend {
       position: absolute;
       bottom: 20px;
@@ -45,58 +40,60 @@
 
     const modelCoordinates = [-2.9231806364031483, 43.25397648476814];
     const hoverCoordinates = [-2.9230922234065213, 43.25412575986106];
-    const viewKunaCoordinates =[-2.9232,43.2541];
+    const viewKunaCoordinates = [-2.9232, 43.2541];
+    const parcelPolygon = {
+      type: 'Polygon',
+      coordinates: [[
+        [-2.92324, 43.25414],
+        [-2.92300, 43.25414],
+        [-2.92300, 43.25403],
+        [-2.92324, 43.25403],
+        [-2.92324, 43.25414]
+      ]]
+    };
+
     const popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: [0, -50] });
 
     const map = new mapboxgl.Map({
       container: 'map',
-      style: 'mapbox://styles/mapbox/standard',
+      style: 'mapbox://styles/mapbox/streets-v12',
       center: viewKunaCoordinates,
-      zoom: 18,
-      pitch: 60,
+      zoom: 12,
+      pitch: 45,
       bearing: -300,
       minZoom: 5,
       maxZoom: 22
     });
 
     map.on('style.load', () => {
-      map.setConfigProperty('basemap', 'showPlaceLabels', false);
-      map.setConfigProperty('basemap', 'showRoadLabels', false);
-      map.setConfigProperty('basemap', 'showPointOfInterestLabels', false);
-      map.setConfigProperty('basemap', 'showTransitLabels', false);
-      map.setConfigProperty('basemap', 'lightPreset', 'day');
-      map.setConfigProperty('basemap', 'font', 'Inter');
-
-      map.addSource('clip-casa-cuna', {
-        type: 'geojson',
-        data: {
-          type: 'FeatureCollection',
-          features: [{
-            type: 'Feature',
-            geometry: {
-              type: 'Polygon',
-              coordinates: [[
-                [-2.92324, 43.25414],
-                [-2.92300, 43.25414],
-                [-2.92300, 43.25403],
-                [-2.92324, 43.25403],
-                [-2.92324, 43.25414]
-              ]]
-            }
-          }]
+      // Eliminar etiquetas y símbolos para limpiar visualmente
+      const layers = map.getStyle().layers;
+      for (const layer of layers) {
+        if (layer.type === 'symbol' || layer.id.includes('label') || layer.id.includes('road') || layer.id.includes('place') || layer.id.includes('poi') || layer.id.includes('transit')) {
+          try { map.removeLayer(layer.id); } catch (e) {}
         }
-      });
+      }
 
+      // Edificios extruidos fuera de la parcela
       map.addLayer({
-        id: 'clip-layer',
-        type: 'clip',
-        source: 'clip-casa-cuna',
-        layout: {
-          'clip-layer-types': ['model'],
-          'clip-layer-scope': ['basemap']
+        id: 'extruded-buildings',
+        type: 'fill-extrusion',
+        source: 'composite',
+        'source-layer': 'building',
+        filter: [
+          'all',
+          ['>', 'height', 15],
+          ['!', ['within', parcelPolygon]]
+        ],
+        paint: {
+          'fill-extrusion-color': '#aaa',
+          'fill-extrusion-height': ['get', 'height'],
+          'fill-extrusion-base': ['coalesce', ['get', 'min_height'], 0],
+          'fill-extrusion-opacity': 0.6
         }
       });
 
+      // Modelo GLB personalizado
       map.addSource('modelo-kuna', {
         type: 'geojson',
         data: {
@@ -122,6 +119,7 @@
         }
       });
 
+      // Área de hover para mostrar el tooltip
       map.addSource('hover-area', {
         type: 'geojson',
         data: {
@@ -130,10 +128,7 @@
             type: 'Feature',
             geometry: { type: 'Point', coordinates: hoverCoordinates },
             properties: {
-              tooltip: `
-                <strong>Edificio Kuna</strong><br/>
-                <a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser"
-                   target="_blank">Ver dashboard</a>`
+              tooltip: `<strong>Edificio Kuna</strong><br/><a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser" target="_blank">Ver dashboard</a>`
             }
           }]
         }
@@ -150,35 +145,32 @@
         }
       });
 
-      // 🧠 THROTTLE del evento mousemove
-      let lastCheck = 0;
-      const throttleMs = 150;
-
       map.on('mousemove', e => {
-        const now = Date.now();
-        if (now - lastCheck < throttleMs) return;
-        lastCheck = now;
-
-        const features = map.queryRenderedFeatures(e.point, {
-          layers: ['hover-layer']
-        });
-
+        const features = map.queryRenderedFeatures(e.point, { layers: ['hover-layer'] });
         map.getCanvas().style.cursor = features.length ? 'pointer' : '';
-
         if (features.length) {
-          popup.setLngLat(modelCoordinates)
-                .setHTML(features[0].properties.tooltip)
-                .addTo(map);
+          popup.setLngLat(modelCoordinates).setHTML(features[0].properties.tooltip).addTo(map);
         } else {
           popup.remove();
         }
+      });
+
+      map.flyTo({
+        center: viewKunaCoordinates,
+        zoom: 18,
+        pitch: 45,
+        bearing: -300,
+        speed: 0.5,
+        curve: 1.8,
+        easing: t => t,
+        essential: true
       });
 
       document.getElementById('goToModel').addEventListener('click', () => {
         map.flyTo({
           center: viewKunaCoordinates,
           zoom: 18,
-          pitch: 60,
+          pitch: 45,
           bearing: -300,
           speed: 0.5,
           curve: 2.0,
