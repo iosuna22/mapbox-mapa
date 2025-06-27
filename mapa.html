@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Casa Cuna - Extrusión edificios 2D</title>
+  <title>Casa Cuna - Solo edificios altos extruidos</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js"></script>
@@ -73,15 +73,16 @@
         try { map.removeLayer(layer.id); } catch (e) {}
       }
 
+      // 🔻 Solo extruir edificios altos (mayores de 20m)
       map.addLayer({
-        id: 'extrude-buildings',
+        id: 'extrude-tall-buildings',
         source: 'composite',
         'source-layer': 'building',
-        filter: ['==', 'extrude', 'true'],
+        filter: ['all', ['==', 'extrude', 'true'], ['>=', ['get', 'height'], 20]],
         type: 'fill-extrusion',
         minzoom: 15,
         paint: {
-          'fill-extrusion-color': '#aaa',
+          'fill-extrusion-color': '#999',
           'fill-extrusion-height': ['get', 'height'],
           'fill-extrusion-base': ['get', 'min_height'],
           'fill-extrusion-opacity': 0.6
