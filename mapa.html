@@ -176,7 +176,7 @@
               return;
             }
             bearing += 1;
-            map.rotateTo(bearing, { duration: 100, easing: t => t });
+            map.rotateTo(bearing, { duration: 50, easing: t => t });
             setTimeout(rotate, 100);
           };
           rotate();
