@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Casa Cuna - Hover, Leyenda y FlyTo</title>
+  <title>Casa Cuna - Mapa limpio y optimizado</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js"></script>
@@ -14,32 +14,10 @@
       font-family: sans-serif;
       font-size: 14px;
     }
-    #legend {
-      position: absolute;
-      bottom: 20px;
-      left: 20px;
-      background: rgba(255,255,255,0.9);
-      padding: 10px 14px;
-      font-family: sans-serif;
-      font-size: 14px;
-      border-radius: 6px;
-      box-shadow: 0 0 4px rgba(0,0,0,0.25);
-    }
-    #legend a {
-      color: #0074D9;
-      text-decoration: none;
-    }
-    #legend a:hover {
-      text-decoration: underline;
-    }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <div id="legend">
-    <strong>Leyenda:</strong><br/>
-    🏛 <a href="#" onclick="centrarEnEdificio(event)">Edificio Kuna</a>
-  </div>
 
   <script>
     mapboxgl.accessToken = 'pk.eyJ1IjoiaW9zdW5hYSIsImEiOiJjbWNjeGdvZGwwZTJ3Mmpxc3RwcmhhODI3In0.k4Q1fwjfujblZ11w5aGoCQ';
@@ -59,82 +37,16 @@
       maxZoom: 22
     });
 
-    function centrarEnEdificio(e) {
-      e.preventDefault();
-
-      // Paso 1: Zoom out
-      map.flyTo({
-        center: modelCoordinates,
-        zoom: 15,
-        speed: 0.6,
-        essential: true
-      });
-
-      // Paso 2: Zoom in después de 1.5s
-      setTimeout(() => {
-        map.flyTo({
-          center: modelCoordinates,
-          zoom: 18,
-          pitch: 45,
-          bearing: 0,
-          speed: 0.8,
-          essential: true
-        });
-
-        // Mostrar popup al llegar
-        popup.setLngLat(modelCoordinates)
-              .setHTML(`
-                <strong>Edificio Kuna</strong><br/>
-                <a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser"
-                   target="_blank">Ver dashboard</a>`)
-              .addTo(map);
-      }, 1500);
-    }
-
     map.on('style.load', () => {
+      // 🔧 Configuración oficial Mapbox Standard para limpieza y rendimiento
+      map.setConfigProperty('basemap', 'showPlaceLabels', false);
+      map.setConfigProperty('basemap', 'showRoadLabels', false);
+      map.setConfigProperty('basemap', 'showPointOfInterestLabels', false);
+      map.setConfigProperty('basemap', 'showTransitLabels', false);
       map.setConfigProperty('basemap', 'lightPreset', 'day');
+      map.setConfigProperty('basemap', 'font', 'Inter');
 
-      map.getStyle().layers.forEach(layer => {
-        const id = layer.id;
-        if (
-          id.includes('label') || id.includes('name') || id.includes('poi') ||
-          id.includes('place') || id.includes('road') || id.includes('admin') ||
-          id.includes('transit') || id.includes('building-number')
-        ) {
-          try { map.removeLayer(id); } catch (e) {}
-        }
-      });
-
-      map.addSource('clip-casa-cuna', {
-        type: 'geojson',
-        data: {
-          type: 'FeatureCollection',
-          features: [{
-            type: 'Feature',
-            geometry: {
-              type: 'Polygon',
-              coordinates: [[
-                [-2.92315, 43.25413],
-                [-2.92300, 43.25413],
-                [-2.92300, 43.25406],
-                [-2.92315, 43.25406],
-                [-2.92315, 43.25413]
-              ]]
-            }
-          }]
-        }
-      });
-
-      map.addLayer({
-        id: 'clip-layer',
-        type: 'clip',
-        source: 'clip-casa-cuna',
-        layout: {
-          'clip-layer-types': ['model'],
-          'clip-layer-scope': ['basemap']
-        }
-      });
-
+      // 🔻 Modelo 3D
       map.addSource('modelo-kuna', {
         type: 'geojson',
         data: {
@@ -160,6 +72,7 @@
         }
       });
 
+      // 🔻 Hover funcional con capa invisible
       map.addSource('hover-area', {
         type: 'geojson',
         data: {
