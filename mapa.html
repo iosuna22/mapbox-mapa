@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Casa Cuna - Mapa limpio y optimizado</title>
+  <title>Casa Cuna - Mapa completo</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js"></script>
@@ -14,10 +14,31 @@
       font-family: sans-serif;
       font-size: 14px;
     }
+    #legend {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(255,255,255,0.9);
+      padding: 10px;
+      font-family: sans-serif;
+      font-size: 14px;
+      border-radius: 5px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.3);
+      z-index: 1;
+    }
+    #legend a {
+      color: #0077ff;
+      cursor: pointer;
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
   <div id="map"></div>
+  <div id="legend">
+    <strong>Leyenda:</strong><br/>
+    <a id="goToModel">Edificio Kuna</a>
+  </div>
 
   <script>
     mapboxgl.accessToken = 'pk.eyJ1IjoiaW9zdW5hYSIsImEiOiJjbWNjeGdvZGwwZTJ3Mmpxc3RwcmhhODI3In0.k4Q1fwjfujblZ11w5aGoCQ';
@@ -38,7 +59,6 @@
     });
 
     map.on('style.load', () => {
-      // 🔧 Configuración oficial Mapbox Standard para limpieza y rendimiento
       map.setConfigProperty('basemap', 'showPlaceLabels', false);
       map.setConfigProperty('basemap', 'showRoadLabels', false);
       map.setConfigProperty('basemap', 'showPointOfInterestLabels', false);
@@ -46,7 +66,38 @@
       map.setConfigProperty('basemap', 'lightPreset', 'day');
       map.setConfigProperty('basemap', 'font', 'Inter');
 
-      // 🔻 Modelo 3D
+      // Clip de edificios originales
+      map.addSource('clip-casa-cuna', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: [{
+            type: 'Feature',
+            geometry: {
+              type: 'Polygon',
+              coordinates: [[
+                [-2.92324, 43.25414],
+                [-2.92300, 43.25414],
+                [-2.92300, 43.25403],
+                [-2.92324, 43.25403],
+                [-2.92324, 43.25414]
+              ]]
+            }
+          }]
+        }
+      });
+
+      map.addLayer({
+        id: 'clip-layer',
+        type: 'clip',
+        source: 'clip-casa-cuna',
+        layout: {
+          'clip-layer-types': ['model'],
+          'clip-layer-scope': ['basemap']
+        }
+      });
+
+      // Modelo 3D
       map.addSource('modelo-kuna', {
         type: 'geojson',
         data: {
@@ -72,7 +123,7 @@
         }
       });
 
-      // 🔻 Hover funcional con capa invisible
+      // Hover funcional
       map.addSource('hover-area', {
         type: 'geojson',
         data: {
@@ -115,6 +166,23 @@
         } else {
           popup.remove();
         }
+      });
+
+      // Animar al hacer click en la leyenda
+      document.getElementById('goToModel').addEventListener('click', () => {
+        map.flyTo({
+          center: modelCoordinates,
+          zoom: 18,
+          pitch: 45,
+          bearing: 0,
+          speed: 1.2,
+          curve: 1.42,
+          easing: t => t,
+          essential: true
+        });
+        popup.setLngLat(modelCoordinates)
+              .setHTML(`<strong>Edificio Kuna</strong><br/><a href='https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser' target='_blank'>Ver dashboard</a>`)
+              .addTo(map);
       });
     });
   </script>
