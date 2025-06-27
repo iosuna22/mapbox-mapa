@@ -67,7 +67,6 @@
       map.setConfigProperty('basemap', 'lightPreset', 'day');
       map.setConfigProperty('basemap', 'font', 'Inter');
 
-      // Clip de edificios originales
       map.addSource('clip-casa-cuna', {
         type: 'geojson',
         data: {
@@ -98,7 +97,6 @@
         }
       });
 
-      // Modelo 3D
       map.addSource('modelo-kuna', {
         type: 'geojson',
         data: {
@@ -124,7 +122,6 @@
         }
       });
 
-      // Hover funcional
       map.addSource('hover-area', {
         type: 'geojson',
         data: {
@@ -153,7 +150,15 @@
         }
       });
 
+      // 🧠 THROTTLE del evento mousemove
+      let lastCheck = 0;
+      const throttleMs = 150;
+
       map.on('mousemove', e => {
+        const now = Date.now();
+        if (now - lastCheck < throttleMs) return;
+        lastCheck = now;
+
         const features = map.queryRenderedFeatures(e.point, {
           layers: ['hover-layer']
         });
@@ -169,7 +174,6 @@
         }
       });
 
-      // Animar al hacer click en la leyenda
       document.getElementById('goToModel').addEventListener('click', () => {
         map.flyTo({
           center: viewKunaCoordinates,
@@ -188,3 +192,4 @@
     });
   </script>
 </body>
+</html>
