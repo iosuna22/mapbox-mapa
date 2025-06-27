@@ -66,7 +66,7 @@
     });
 
     map.on('style.load', () => {
-      // Eliminar símbolos excepto calles y POIs útiles
+      // Eliminar símbolos innecesarios (excepto calles y POIs útiles)
       const layers = map.getStyle().layers;
       for (const layer of layers) {
         if (layer.type === 'symbol') {
@@ -91,7 +91,6 @@
         }
       }
 
-      // Edificios extruidos fuera de la parcela
       map.addLayer({
         id: 'extruded-buildings',
         type: 'fill-extrusion',
@@ -110,7 +109,6 @@
         }
       });
 
-      // Modelo GLB personalizado
       map.addSource('modelo-kuna', {
         type: 'geojson',
         data: {
@@ -136,7 +134,6 @@
         }
       });
 
-      // Área de hover para mostrar el tooltip
       map.addSource('hover-area', {
         type: 'geojson',
         data: {
@@ -162,7 +159,7 @@
         }
       });
 
-      // Evento optimizado con throttle para mostrar el tooltip
+      // Evento throttled para tooltip
       let lastCheck = 0;
       const throttleMs = 150;
 
@@ -180,7 +177,6 @@
         }
       });
 
-      // Fly al iniciar
       map.flyTo({
         center: viewKunaCoordinates,
         zoom: 18,
@@ -192,7 +188,6 @@
         essential: true
       });
 
-      // Botón de leyenda
       document.getElementById('goToModel').addEventListener('click', () => {
         map.flyTo({
           center: viewKunaCoordinates,
