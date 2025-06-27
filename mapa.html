@@ -45,15 +45,16 @@
 
     const modelCoordinates = [-2.9231806364031483, 43.25397648476814];
     const hoverCoordinates = [-2.9230922234065213, 43.25412575986106];
+    const viewKunaCoordinates =[-2.9232,43.2541];
     const popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: [0, -50] });
 
     const map = new mapboxgl.Map({
       container: 'map',
       style: 'mapbox://styles/mapbox/standard',
-      center: modelCoordinates,
-      zoom: 16,
+      center: viewKunaCoordinates,
+      zoom: 17,
       pitch: 45,
-      bearing: 0,
+      bearing: -35,
       minZoom: 5,
       maxZoom: 22
     });
@@ -171,12 +172,12 @@
       // Animar al hacer click en la leyenda
       document.getElementById('goToModel').addEventListener('click', () => {
         map.flyTo({
-          center: modelCoordinates,
-          zoom: 16,
+          center: viewKunaCoordinates,
+          zoom: 17,
           pitch: 45,
-          bearing: 0,
-          speed: 1.2,
-          curve: 1.42,
+          bearing: -35,
+          speed: 0.6,
+          curve: 1.6,
           easing: t => t,
           essential: true
         });
