@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Casa Cuna – Clip-layer con estilo Standard</title>
+  <title>Casa Cuna – Recorte correcto de edificios</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js"></script>
@@ -11,7 +11,8 @@
     #map { position:absolute; top:0; bottom:0; width:100%; }
     #legend {
       position: absolute;
-      bottom: 20px; left: 20px;
+      bottom: 20px;
+      left: 20px;
       background: rgba(255,255,255,0.9);
       padding: 10px;
       font-family: sans-serif;
@@ -59,25 +60,20 @@
       zoom: 18,
       pitch: 45,
       bearing: -300,
-      minZoom: 5,
-      maxZoom: 22
+      antialias: true
     });
 
     map.on('style.load', () => {
-      // Ocultar etiquetas y símbolos
-      const layers = map.getStyle().layers;
-      for (const layer of layers) {
-        if (layer.type === 'symbol' || /label|road|place|poi|transit/.test(layer.id)) {
-          try { map.removeLayer(layer.id); } catch (e) {}
-        }
-      }
+      // 🔍 Buscar la capa de edificios del estilo "standard"
+      const building3dLayer = map.getStyle().layers.find(layer => layer.id === 'building-3d');
 
-      // Recorte efectivo de edificios en zona de parcela
+      // Añadir la fuente GeoJSON para el clip
       map.addSource('parcel', {
         type: 'geojson',
         data: { type: 'Feature', geometry: parcel }
       });
 
+      // Añadir la capa de recorte justo antes de 'building-3d'
       map.addLayer({
         id: 'clip-edificio-kuna',
         type: 'clip',
@@ -86,9 +82,9 @@
           'clip-layer-types': ['fill-extrusion'],
           'clip-layer-scope': ['basemap']
         }
-      });
+      }, building3dLayer?.id);
 
-      // Añadir modelo GLB
+      // Añadir modelo 3D (GLB)
       map.addSource('modelo-kuna', {
         type: 'geojson',
         data: {
@@ -107,14 +103,14 @@
         slot: 'middle',
         layout: { 'model-id': ['get', 'model-id'] },
         paint: {
-          'model-rotation': [0,0,65],
-          'model-scale': [1,1,1],
+          'model-rotation': [0, 0, 65],
+          'model-scale': [1, 1, 1],
           'model-opacity': 1,
           'model-cast-shadows': false
         }
       });
 
-      // Hover + tooltip
+      // Hover con tooltip
       map.addSource('hover-area', {
         type: 'geojson',
         data: {
@@ -124,8 +120,7 @@
             geometry: { type: 'Point', coordinates: hoverCoords },
             properties: {
               tooltip: `<strong>Edificio Kuna</strong><br/>
-                        <a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser"
-                           target="_blank">Ver dashboard</a>`
+                <a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser" target="_blank">Ver dashboard</a>`
             }
           }]
         }
@@ -141,11 +136,7 @@
         }
       });
 
-      const popup = new mapboxgl.Popup({
-        closeButton: false,
-        closeOnClick: false,
-        offset: [0, -50]
-      });
+      const popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: [0, -50] });
 
       map.on('mousemove', e => {
         const features = map.queryRenderedFeatures(e.point, { layers: ['hover-layer'] });
