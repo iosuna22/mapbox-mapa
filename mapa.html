@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8" />
-  <title>Casa Cuna - Experiencia Interactiva</title>
+  <meta charset="utf-8">
+  <title>Casa Cuna - Vista Nocturna</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet">
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js"></script>
   <style>
-    body { margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+    body { margin: 0; padding: 0; }
     #map { position: absolute; top: 0; bottom: 0; width: 100%; }
     
-    /* Leyenda (original) */
+    /* Leyenda original */
     #legend {
       position: absolute;
       bottom: 20px;
@@ -29,79 +29,44 @@
       text-decoration: underline;
     }
     
-    /* Loader */
-    #loader {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(255, 255, 255, 0.9);
-      padding: 25px;
-      border-radius: 15px;
-      text-align: center;
-      z-index: 100;
-      box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
-    }
-    .spinner {
-      border: 5px solid rgba(0, 0, 0, 0.1);
-      border-top: 5px solid #4264fb;
-      border-radius: 50%;
-      width: 50px;
-      height: 50px;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 15px;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    
-    /* Controles de animación */
-    #controls {
+    /* Botón modo noche */
+    #night-mode {
       position: absolute;
       top: 20px;
       right: 20px;
-      background: rgba(255, 255, 255, 0.9);
-      padding: 10px;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.2);
-      z-index: 10;
-    }
-    #controls button {
-      display: block;
-      margin: 5px 0;
-      padding: 5px 10px;
-      background: #4264fb;
-      color: white;
-      border: none;
-      border-radius: 4px;
+      background: rgba(255,255,255,0.9);
+      padding: 8px 12px;
+      border-radius: 5px;
+      font-family: sans-serif;
+      font-size: 14px;
       cursor: pointer;
+      box-shadow: 0 0 5px rgba(0,0,0,0.2);
+      z-index: 1;
     }
   </style>
 </head>
 <body>
   <div id="map"></div>
   
-  <!-- Leyenda original -->
+  <!-- Leyenda original conservada -->
   <div id="legend">
     <strong>Leyenda:</strong><br/>
     <a id="goToModel">Edificio Kuna</a>
   </div>
   
-  <!-- Controles de animación -->
-  <div id="controls">
-    <button id="rotate-btn">🔄 Rotar</button>
-    <button id="pulse-btn">💓 Latido</button>
-  </div>
-  
-  <!-- Loader -->
-  <div id="loader">
-    <div class="spinner"></div>
-    <p>Cargando...</p>
-  </div>
+  <!-- Botón modo noche -->
+  <div id="night-mode">🌙 Modo Noche</div>
 
   <script>
-    // Configuración original
+    // Precargar el modelo 3D antes de inicializar el mapa
+    const modelUrl = 'https://raw.githubusercontent.com/iosuna22/mapbox-mapa/main/edificio.glb';
+    const preloadModel = async () => {
+      const response = await fetch(modelUrl);
+      const blob = await response.blob();
+      return URL.createObjectURL(blob);
+    };
+    
+    // Configuración inicial
     mapboxgl.accessToken = 'pk.eyJ1IjoiaW9zdW5hYSIsImEiOiJjbWNjeGdvZGwwZTJ3Mmpxc3RwcmhhODI3In0.k4Q1fwjfujblZ11w5aGoCQ';
     
     const modelCoordinates = [-2.9231806364031483, 43.25397648476814];
@@ -120,16 +85,11 @@
     
     const popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: [0, -50] });
     
-    // Variables para animaciones
-    let isRotating = false;
-    let isPulsing = false;
-    let animationFrameId;
-
-    // Mapa (configuración original)
+    // Crear mapa con vista inicial alejada
     const map = new mapboxgl.Map({
       container: 'map',
       style: 'mapbox://styles/mapbox/standard',
-      center: [-2.92, 43.25], // Vista inicial más alejada
+      center: [-2.92, 43.25], // Vista inicial más amplia
       zoom: 13,
       pitch: 30,
       bearing: 0,
@@ -137,182 +97,134 @@
       maxZoom: 22
     });
 
-    // ======================================
-    // ANIMACIONES (Nuevas)
-    // ======================================
-    
-    // 1. Rotación automática
-    function toggleRotation() {
-      isRotating = !isRotating;
-      if (isRotating) {
-        let bearing = map.getBearing();
-        const rotate = () => {
-          bearing += 0.5;
-          map.easeTo({ bearing });
-          animationFrameId = requestAnimationFrame(rotate);
-        };
-        rotate();
-      } else {
-        cancelAnimationFrame(animationFrameId);
-      }
-    }
-    
-    // 2. Efecto de pulso en el modelo
-    function togglePulse() {
-      isPulsing = !isPulsing;
-      let scale = 1;
-      const pulse = () => {
-        if (!isPulsing) return;
-        scale = scale === 1 ? 1.03 : 1;
-        map.setPaintProperty('modelo-kuna', 'model-scale', [scale, scale, scale]);
-        setTimeout(pulse, 800);
-      };
-      if (isPulsing) pulse();
-    }
-    
-    // ======================================
-    // CÓDIGO ORIGINAL (conservado al 100%)
-    // ======================================
-    
-    map.on('style.load', () => {
-      // Configuración original de etiquetas
-      map.setConfigProperty('basemap', 'showPlaceLabels', false);
-      map.setConfigProperty('basemap', 'showRoadLabels', false);
-      map.setConfigProperty('basemap', 'showPointOfInterestLabels', false);
-      map.setConfigProperty('basemap', 'showTransitLabels', false);
-      
-      // Capa de recorte original
-      map.addSource('clip-casa-cuna', {
-        type: 'geojson',
-        data: {
-          type: 'FeatureCollection',
-          features: [{
-            type: 'Feature',
-            geometry: {
-              type: 'Polygon',
-              coordinates: [[
-                [-2.92324, 43.25414],
-                [-2.92300, 43.25414],
-                [-2.92300, 43.25403],
-                [-2.92324, 43.25403],
-                [-2.92324, 43.25414]
-              ]]
-            }
-          }]
-        }
-      });
-      
-      map.addLayer({
-        id: 'clip-layer',
-        type: 'clip',
-        source: 'clip-casa-cuna',
-        layout: {
-          'clip-layer-types': ['model'],
-          'clip-layer-scope': ['basemap']
-        }
-      });
-      
-      // Modelo 3D original
-      map.addSource('modelo-kuna', {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          geometry: { type: 'Point', coordinates: modelCoordinates },
-          properties: {
-            'model-id': 'https://raw.githubusercontent.com/iosuna22/mapbox-mapa/main/edificio.glb'
+    // Precargar modelo y configurar mapa
+    preloadModel().then(() => {
+      map.on('load', () => {
+        // Configuración original de etiquetas
+        map.setConfigProperty('basemap', 'showPlaceLabels', false);
+        map.setConfigProperty('basemap', 'showRoadLabels', false);
+        map.setConfigProperty('basemap', 'showPointOfInterestLabels', false);
+        map.setConfigProperty('basemap', 'showTransitLabels', false);
+        
+        // Capa de recorte original
+        map.addSource('clip-casa-cuna', {
+          type: 'geojson',
+          data: {
+            type: 'FeatureCollection',
+            features: [{
+              type: 'Feature',
+              geometry: {
+                type: 'Polygon',
+                coordinates: parcelPolygon.coordinates
+              }
+            }]
           }
-        }
-      });
-      
-      map.addLayer({
-        id: 'modelo-kuna',
-        type: 'model',
-        source: 'modelo-kuna',
-        slot: 'middle',
-        layout: { 'model-id': ['get', 'model-id'] },
-        paint: {
-          'model-rotation': [0, 0, 65],
-          'model-scale': [1.0, 1.0, 1.0],
-          'model-opacity': 1,
-          'model-cast-shadows': false
-        }
-      });
-      
-      // Tooltip original
-      map.addSource('hover-area', {
-        type: 'geojson',
-        data: {
-          type: 'FeatureCollection',
-          features: [{
+        });
+        
+        map.addLayer({
+          id: 'clip-layer',
+          type: 'clip',
+          source: 'clip-casa-cuna',
+          layout: {
+            'clip-layer-types': ['model'],
+            'clip-layer-scope': ['basemap']
+          }
+        });
+        
+        // Modelo 3D con URL precargada
+        map.addSource('modelo-kuna', {
+          type: 'geojson',
+          data: {
             type: 'Feature',
-            geometry: { type: 'Point', coordinates: hoverCoordinates },
-            properties: {
-              tooltip: `
-                <strong>Edificio Kuna</strong><br/>
-                <a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser"
-                   target="_blank">Ver dashboard</a>`
-            }
-          }]
-        }
-      });
-      
-      map.addLayer({
-        id: 'hover-layer',
-        type: 'circle',
-        source: 'hover-area',
-        paint: {
-          'circle-radius': 20,
-          'circle-color': '#000',
-          'circle-opacity': 0
-        }
-      });
-      
-      // Evento original de tooltip
-      let lastCheck = 0;
-      const throttleMs = 150;
-      
-      map.on('mousemove', e => {
-        const now = Date.now();
-        if (now - lastCheck < throttleMs) return;
-        lastCheck = now;
-        
-        const features = map.queryRenderedFeatures(e.point, {
-          layers: ['hover-layer']
+            geometry: { type: 'Point', coordinates: modelCoordinates },
+            properties: { 'model-id': modelUrl }
+          }
         });
         
-        map.getCanvas().style.cursor = features.length ? 'pointer' : '';
+        map.addLayer({
+          id: 'modelo-kuna',
+          type: 'model',
+          source: 'modelo-kuna',
+          slot: 'middle',
+          layout: { 'model-id': ['get', 'model-id'] },
+          paint: {
+            'model-rotation': [0, 0, 65],
+            'model-scale': [1.0, 1.0, 1.0],
+            'model-opacity': 1,
+            'model-cast-shadows': true // Mejor para modo noche
+          }
+        });
         
-        if (features.length) {
+        // Tooltip original
+        map.addSource('hover-area', {
+          type: 'geojson',
+          data: {
+            type: 'FeatureCollection',
+            features: [{
+              type: 'Feature',
+              geometry: { type: 'Point', coordinates: hoverCoordinates },
+              properties: {
+                tooltip: `
+                  <strong>Edificio Kuna</strong><br/>
+                  <a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser"
+                     target="_blank">Ver dashboard</a>`
+              }
+            }]
+          }
+        });
+        
+        map.addLayer({
+          id: 'hover-layer',
+          type: 'circle',
+          source: 'hover-area',
+          paint: {
+            'circle-radius': 20,
+            'circle-color': '#000',
+            'circle-opacity': 0
+          }
+        });
+        
+        // Evento original de tooltip
+        let lastCheck = 0;
+        const throttleMs = 150;
+        
+        map.on('mousemove', e => {
+          const now = Date.now();
+          if (now - lastCheck < throttleMs) return;
+          lastCheck = now;
+          
+          const features = map.queryRenderedFeatures(e.point, {
+            layers: ['hover-layer']
+          });
+          
+          map.getCanvas().style.cursor = features.length ? 'pointer' : '';
+          
+          if (features.length) {
+            popup.setLngLat(modelCoordinates)
+                  .setHTML(features[0].properties.tooltip)
+                  .addTo(map);
+          } else {
+            popup.remove();
+          }
+        });
+        
+        // Botón original de la leyenda
+        document.getElementById('goToModel').addEventListener('click', () => {
+          map.flyTo({
+            center: viewKunaCoordinates,
+            zoom: 18,
+            pitch: 60,
+            bearing: -300,
+            speed: 0.5,
+            curve: 2.0,
+            essential: true
+          });
           popup.setLngLat(modelCoordinates)
-                .setHTML(features[0].properties.tooltip)
+                .setHTML(`<strong>Edificio Kuna</strong><br/><a href='https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser' target='_blank'>Ver dashboard</a>`)
                 .addTo(map);
-        } else {
-          popup.remove();
-        }
-      });
-      
-      // Botón original de la leyenda
-      document.getElementById('goToModel').addEventListener('click', () => {
-        map.flyTo({
-          center: viewKunaCoordinates,
-          zoom: 18,
-          pitch: 60,
-          bearing: -300,
-          speed: 0.5,
-          curve: 2.0,
-          essential: true
         });
-        popup.setLngLat(modelCoordinates)
-              .setHTML(`<strong>Edificio Kuna</strong><br/><a href='https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser' target='_blank'>Ver dashboard</a>`)
-              .addTo(map);
-      });
-      
-      // ======================================
-      // MEJORAS AÑADIDAS (sin modificar lo original)
-      // ======================================
-      
-      // 1. Vuelo inicial animado
-      setTimeout(() => {
+        
+        // Vuelo automático al cargar (suave)
         map.flyTo({
           center: viewKunaCoordinates,
           zoom: 18,
@@ -321,12 +233,18 @@
           duration: 4000,
           curve: 1.5
         });
-        document.getElementById('loader').style.display = 'none';
-      }, 1000);
+      });
+    });
+    
+    // Modo noche/día
+    let isNightMode = false;
+    document.getElementById('night-mode').addEventListener('click', () => {
+      isNightMode = !isNightMode;
+      map.setConfigProperty('basemap', 'lightPreset', isNightMode ? 'night' : 'day');
+      document.getElementById('night-mode').textContent = isNightMode ? '☀️ Modo Día' : '🌙 Modo Noche';
       
-      // 2. Event listeners para controles nuevos
-      document.getElementById('rotate-btn').addEventListener('click', toggleRotation);
-      document.getElementById('pulse-btn').addEventListener('click', togglePulse);
+      // Ajustar sombras del modelo
+      map.setPaintProperty('modelo-kuna', 'model-cast-shadows', isNightMode);
     });
   </script>
 </body>
