@@ -49,11 +49,11 @@
 
     const map = new mapboxgl.Map({
       container: 'map',
-      style: 'mapbox://styles/mapbox/light-v11',
+      style: 'mapbox://styles/mapbox/street-v11',
       center: viewKunaCoordinates,
       zoom: 17,
       pitch: 45,
-      bearing: -200,
+      bearing: -300,
       minZoom: 5,
       maxZoom: 22
     });
@@ -136,7 +136,7 @@
           center: viewKunaCoordinates,
           zoom: 17,
           pitch: 45,
-          bearing: -200,
+          bearing: -300,
           speed: 0.5,
           curve: 2.0,
           easing: t => t,
