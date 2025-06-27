@@ -49,9 +49,9 @@
 
     const map = new mapboxgl.Map({
       container: 'map',
-      style: 'mapbox://styles/mapbox/dark-v11',
+      style: 'mapbox://styles/mapbox/streets-v12',
       center: viewKunaCoordinates,
-      zoom: 17,
+      zoom: 18,
       pitch: 45,
       bearing: -300,
       minZoom: 5,
@@ -134,7 +134,7 @@
       document.getElementById('goToModel').addEventListener('click', () => {
         map.flyTo({
           center: viewKunaCoordinates,
-          zoom: 17,
+          zoom: 18,
           pitch: 45,
           bearing: -300,
           speed: 0.5,
