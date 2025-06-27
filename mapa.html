@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Casa Cuna - Edificios extruidos mayores de 15m</title>
+  <title>Casa Cuna - Edificios > 15m sin etiquetas</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js"></script>
@@ -52,15 +52,66 @@
       container: 'map',
       style: 'mapbox://styles/mapbox/streets-v12',
       center: viewKunaCoordinates,
-      zoom: 15,
+      zoom: 12,
       pitch: 45,
       bearing: -300,
       minZoom: 5,
       maxZoom: 22
     });
 
-    map.on('load', () => {
-      // Cargar modelo 3D
+    map.on('style.load', () => {
+      // 🔹 Eliminar etiquetas para mejorar rendimiento
+      const layers = map.getStyle().layers;
+      for (const layer of layers) {
+        if (layer.type === 'symbol' || layer.id.includes('label') || layer.id.includes('road') || layer.id.includes('place') || layer.id.includes('poi') || layer.id.includes('transit')) {
+          try { map.removeLayer(layer.id); } catch (e) {}
+        }
+      }
+
+      map.addSource('clip-cuna', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: [{
+            type: 'Feature',
+            geometry: {
+              type: 'Polygon',
+              coordinates: [[
+                [-2.92324, 43.25414],
+                [-2.92300, 43.25414],
+                [-2.92300, 43.25403],
+                [-2.92324, 43.25403],
+                [-2.92324, 43.25414]
+              ]]
+            }
+          }]
+        }
+      });
+
+      map.addLayer({
+        id: 'clip-layer',
+        type: 'clip',
+        source: 'clip-cuna',
+        layout: {
+          'clip-layer-types': ['fill-extrusion'],
+          'clip-layer-scope': ['basemap']
+        }
+      });
+
+      map.addLayer({
+        id: 'extruded-buildings',
+        type: 'fill-extrusion',
+        source: 'composite',
+        'source-layer': 'building',
+        filter: ['>', 'height', 15],
+        paint: {
+          'fill-extrusion-color': '#aaa',
+          'fill-extrusion-height': ['get', 'height'],
+          'fill-extrusion-base': ['coalesce', ['get', 'min_height'], 0],
+          'fill-extrusion-opacity': 0.6
+        }
+      });
+
       map.addSource('modelo-kuna', {
         type: 'geojson',
         data: {
@@ -86,22 +137,6 @@
         }
       });
 
-      // Edificios extruidos > 15m
-      map.addLayer({
-        id: 'extruded-buildings',
-        type: 'fill-extrusion',
-        source: 'composite',
-        'source-layer': 'building',
-        filter: ['>', 'height', 15],
-        paint: {
-          'fill-extrusion-color': '#aaa',
-          'fill-extrusion-height': ['get', 'height'],
-          'fill-extrusion-base': ['coalesce', ['get', 'min_height'], 0],
-          'fill-extrusion-opacity': 0.6
-        }
-      });
-
-      // Hover funcional
       map.addSource('hover-area', {
         type: 'geojson',
         data: {
@@ -137,7 +172,17 @@
         }
       });
 
-      // Click leyenda
+      map.flyTo({
+        center: viewKunaCoordinates,
+        zoom: 18,
+        pitch: 45,
+        bearing: -300,
+        speed: 0.5,
+        curve: 1.8,
+        easing: t => t,
+        essential: true
+      });
+
       document.getElementById('goToModel').addEventListener('click', () => {
         map.flyTo({
           center: viewKunaCoordinates,
