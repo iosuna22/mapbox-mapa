@@ -2,17 +2,16 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Casa Cuna – Recorte correcto de edificios</title>
+  <title>Casa Cuna – V3 con edificios 3D sin etiquetas</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js"></script>
   <style>
-    body { margin:0; padding:0; }
-    #map { position:absolute; top:0; bottom:0; width:100%; }
+    body { margin: 0; padding: 0; }
+    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
     #legend {
       position: absolute;
-      bottom: 20px;
-      left: 20px;
+      bottom: 20px; left: 20px;
       background: rgba(255,255,255,0.9);
       padding: 10px;
       font-family: sans-serif;
@@ -21,11 +20,7 @@
       box-shadow: 0 0 5px rgba(0,0,0,0.3);
       z-index: 1;
     }
-    #legend a {
-      color: #0077ff;
-      cursor: pointer;
-      text-decoration: underline;
-    }
+    #legend a { color: #0077ff; cursor: pointer; text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -39,10 +34,9 @@
     mapboxgl.accessToken = 'pk.eyJ1IjoiaW9zdW5hYSIsImEiOiJjbWNjeGdvZGwwZTJ3Mmpxc3RwcmhhODI3In0.k4Q1fwjfujblZ11w5aGoCQ';
 
     const modelCoords = [-2.92318, 43.2539765];
-    const hoverCoords = [-2.9230922, 43.2541258];
     const viewCoords = [-2.9232, 43.2541];
 
-    const parcel = {
+    const clipPolygon = {
       type: 'Polygon',
       coordinates: [[
         [-2.92324, 43.25414],
@@ -55,7 +49,7 @@
 
     const map = new mapboxgl.Map({
       container: 'map',
-      style: 'mapbox://styles/mapbox/standard',
+      style: 'mapbox://styles/mapbox/standard?optimize=true',
       center: viewCoords,
       zoom: 18,
       pitch: 45,
@@ -64,27 +58,46 @@
     });
 
     map.on('style.load', () => {
-      // 🔍 Buscar la capa de edificios del estilo "standard"
-      const building3dLayer = map.getStyle().layers.find(layer => layer.id === 'building-3d');
-
-      // Añadir la fuente GeoJSON para el clip
-      map.addSource('parcel', {
-        type: 'geojson',
-        data: { type: 'Feature', geometry: parcel }
+      // 🧹 Eliminar símbolos/POIs para mejorar rendimiento
+      map.getStyle().layers.forEach(layer => {
+        if (layer.type === 'symbol') {
+          try { map.removeLayer(layer.id); } catch (e) {}
+        }
       });
 
-      // Añadir la capa de recorte justo antes de 'building-3d'
+      // 🎯 Añadir clip-layer ANTES de edificios
+      map.addSource('parcel', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: [{ type: 'Feature', geometry: clipPolygon }]
+        }
+      });
+
+      const targetBeforeLayer = map.getStyle().layers.find(l => l.id === 'building-3d')?.id;
+
       map.addLayer({
-        id: 'clip-edificio-kuna',
+        id: 'clip-area',
         type: 'clip',
         source: 'parcel',
         layout: {
-          'clip-layer-types': ['fill-extrusion'],
-          'clip-layer-scope': ['basemap']
+          'clip-layer-types': ['fill-extrusion', 'symbol', 'model']
         }
-      }, building3dLayer?.id);
+      }, targetBeforeLayer);
 
-      // Añadir modelo 3D (GLB)
+      // 🧱 Línea de depuración (puedes quitar esta capa si no la necesitas)
+      map.addLayer({
+        id: 'clip-debug',
+        type: 'line',
+        source: 'parcel',
+        paint: {
+          'line-color': '#f00',
+          'line-width': 2,
+          'line-dasharray': [2, 2]
+        }
+      });
+
+      // 🧍 Modelo GLB
       map.addSource('modelo-kuna', {
         type: 'geojson',
         data: {
@@ -110,42 +123,15 @@
         }
       });
 
-      // Hover con tooltip
-      map.addSource('hover-area', {
-        type: 'geojson',
-        data: {
-          type: 'FeatureCollection',
-          features: [{
-            type: 'Feature',
-            geometry: { type: 'Point', coordinates: hoverCoords },
-            properties: {
-              tooltip: `<strong>Edificio Kuna</strong><br/>
-                <a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser" target="_blank">Ver dashboard</a>`
-            }
-          }]
-        }
-      });
-
-      map.addLayer({
-        id: 'hover-layer',
-        type: 'circle',
-        source: 'hover-area',
-        paint: {
-          'circle-radius': 20,
-          'circle-opacity': 0
-        }
-      });
-
-      const popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: [0, -50] });
-
-      map.on('mousemove', e => {
-        const features = map.queryRenderedFeatures(e.point, { layers: ['hover-layer'] });
-        map.getCanvas().style.cursor = features.length ? 'pointer' : '';
-        if (features.length) {
-          popup.setLngLat(modelCoords).setHTML(features[0].properties.tooltip).addTo(map);
-        } else {
-          popup.remove();
-        }
+      // 🛫 Animación inicial
+      map.flyTo({
+        center: viewCoords,
+        zoom: 18,
+        pitch: 45,
+        bearing: -300,
+        speed: 0.5,
+        curve: 2,
+        easing: t => t
       });
 
       document.getElementById('goToModel').addEventListener('click', () => {
@@ -155,15 +141,9 @@
           pitch: 45,
           bearing: -300,
           speed: 0.5,
-          curve: 2.0,
-          easing: t => t,
-          essential: true
+          curve: 2,
+          easing: t => t
         });
-        popup.setLngLat(modelCoords).setHTML(
-          `<strong>Edificio Kuna</strong><br/>
-          <a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser"
-             target="_blank">Ver dashboard</a>`
-        ).addTo(map);
       });
     });
   </script>
