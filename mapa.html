@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Casa Cuna - Animación completa</title>
+  <title>Casa Cuna - Extrusión edificios 2D</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js"></script>
@@ -67,17 +67,27 @@
 
     map.on('load', () => {
       const layersToRemove = map.getStyle().layers.filter(layer =>
-        ['symbol', 'line'].includes(layer.type) &&
-        !(
-          layer.id.includes('place') ||
-          layer.id.includes('admin') ||
-          layer.id.includes('road-number') ||
-          layer.id.includes('poi')
-        )
+        ['symbol', 'line'].includes(layer.type)
       );
       for (const layer of layersToRemove) {
         try { map.removeLayer(layer.id); } catch (e) {}
       }
+
+      map.addLayer({
+        id: 'extrude-buildings',
+        source: 'composite',
+        'source-layer': 'building',
+        filter: ['==', 'extrude', 'true'],
+        type: 'fill-extrusion',
+        minzoom: 15,
+        paint: {
+          'fill-extrusion-color': '#aaa',
+          'fill-extrusion-height': ['get', 'height'],
+          'fill-extrusion-base': ['get', 'min_height'],
+          'fill-extrusion-opacity': 0.6
+        }
+      });
+
       map.getContainer().style.visibility = 'visible';
 
       map.addSource('modelo-kuna', {
@@ -152,34 +162,11 @@
           center: viewKunaCoordinates,
           zoom: 18,
           pitch: 45,
-          bearing: 0,
-          speed: 0.3,
+          bearing: -300,
+          speed: 0.5,
           curve: 1.8,
           easing: t => t,
           essential: true
-        });
-
-        map.once('moveend', () => {
-          let bearing = 0;
-          const rotate = () => {
-            if (bearing >= 360) {
-              map.flyTo({
-                center: viewKunaCoordinates,
-                zoom: 18,
-                pitch: 45,
-                bearing: -300,
-                speed: 0.5,
-                curve: 1.4,
-                easing: t => t,
-                essential: true
-              });
-              return;
-            }
-            bearing += 1;
-            map.rotateTo(bearing, { duration: 50, easing: t => t });
-            setTimeout(rotate, 100);
-          };
-          rotate();
         });
       }, 1000);
 
