@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Casa Cuna - Marcador Alto</title>
+  <title>Casa Cuna - Marcador con Popup Superior</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js"></script>
@@ -29,22 +29,28 @@
       text-decoration: underline;
     }
     
-    /* Marcador elevado (150px sobre superficie) */
-    .high-altitude-marker {
+    /* Marcador flotante */
+    .smart-marker {
       background-image: url('https://raw.githubusercontent.com/iosuna22/mapbox-mapa/main/EdificioKuna.jpg');
       background-size: cover;
-      width: 70px;
-      height: 70px;
+      width: 50px;
+      height: 50px;
       border-radius: 50%;
-      border: 3px solid white;
-      box-shadow: 0 0 25px rgba(0,0,0,0.6);
-      transform: translateY(-150px); /* Elevación extrema */
-      transition: all 0.3s;
+      border: 2px solid white;
+      box-shadow: 0 0 20px rgba(0,0,0,0.6);
+      transform: translate(-50%, -50%) translateY(-100px);
+      position: absolute;
       z-index: 10;
+      opacity: 0;
+      transition: opacity 0.5s, transform 0.3s;
+      cursor: pointer;
     }
-    .high-altitude-marker:hover {
-      transform: translateY(-155px) scale(1.1);
-      box-shadow: 0 0 30px rgba(0,0,0,0.8);
+    .smart-marker.visible {
+      opacity: 1;
+    }
+    .smart-marker:hover {
+      transform: translate(-50%, -50%) translateY(-105px) scale(1.1);
+      box-shadow: 0 0 25px rgba(0,0,0,0.8);
     }
     
     /* Loader */
@@ -73,15 +79,24 @@
       100% { transform: rotate(360deg); }
     }
     
-    /* Popup estilizado */
-    .mapboxgl-popup-content {
+    /* Popup personalizado (encima del marcador) */
+    .custom-popup .mapboxgl-popup-content {
+      background: rgba(255,255,255,0.95);
       border-radius: 8px;
-      box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+      box-shadow: 0 3px 15px rgba(0,0,0,0.2);
+      padding: 12px;
+      font-family: sans-serif;
+    }
+    .custom-popup .mapboxgl-popup-tip {
+      display: none;
     }
   </style>
 </head>
 <body>
   <div id="map"></div>
+  
+  <!-- Marcador flotante -->
+  <div id="floating-marker" class="smart-marker"></div>
   
   <div id="legend">
     <strong>Leyenda:</strong><br/>
@@ -96,130 +111,98 @@
   <script>
     mapboxgl.accessToken = 'pk.eyJ1IjoiaW9zdW5hYSIsImEiOiJjbWNjeGdvZGwwZTJ3Mmpxc3RwcmhhODI3In0.k4Q1fwjfujblZ11w5aGoCQ';
     
-    // Coordenadas del marcador (longitud, latitud)
-    const markerLngLat = [-2.9230369118412556, 43.254037226606236];
-    const markerHeight = 200; // Altura en metros sobre el suelo (eje Z)
+    // Configuración
+    const targetLngLat = [-2.9230369118412556, 43.254037226606236];
+    const visibilityRadius = 0.0003; // Radio de visibilidad (~30 metros)
     
     const map = new mapboxgl.Map({
       container: 'map',
       style: 'mapbox://styles/mapbox/standard',
       center: [-2.9232, 43.2541],
-      zoom: 13,
-      pitch: 65,  // Inclinación pronunciada
-      bearing: 0,
-      minZoom: 12,
-      maxZoom: 22
+      zoom: 15,
+      pitch: 60,
+      bearing: -20
     });
 
-    // Popup
+    // Elementos
+    const markerEl = document.getElementById('floating-marker');
     const popup = new mapboxgl.Popup({ 
-      closeButton: false, 
-      offset: [0, -40] 
-    });
+      className: 'custom-popup',
+      closeButton: false,
+      offset: { bottom: [0, -120] } // Posición exacta encima del marcador
+    }).setHTML('<strong>Edificio Kuna</strong><br/><a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna" target="_blank">Ver dashboard</a>');
 
-    // Precargar imagen del marcador
-    const preloadImage = () => {
-      return new Promise((resolve) => {
-        const img = new Image();
-        img.src = 'https://raw.githubusercontent.com/iosuna22/mapbox-mapa/main/EdificioKuna.jpg';
-        img.onload = () => resolve();
+    // Función para calcular distancia
+    function isNearTarget() {
+      const center = map.getCenter();
+      const dx = center.lng - targetLngLat[0];
+      const dy = center.lat - targetLngLat[1];
+      return Math.sqrt(dx*dx + dy*dy) < visibilityRadius;
+    }
+
+    // Actualizar visibilidad y posición del marcador
+    function updateMarker() {
+      const near = isNearTarget();
+      markerEl.classList.toggle('visible', near);
+      
+      if (near) {
+        const pixelPos = map.project(targetLngLat);
+        markerEl.style.left = `${pixelPos.x}px`;
+        markerEl.style.top = `${pixelPos.y}px`;
+      }
+    }
+
+    // FlyTo igual al del botón de leyenda
+    function flyToTarget() {
+      map.flyTo({
+        center: targetLngLat,
+        zoom: 18,
+        pitch: 60,
+        bearing: -300,
+        speed: 0.5,
+        curve: 2.0,
+        essential: true
       });
-    };
+    }
 
-    // Inicializar mapa
-    Promise.all([preloadImage()]).then(() => {
+    // Precargar imagen y configurar mapa
+    const img = new Image();
+    img.src = 'https://raw.githubusercontent.com/iosuna22/mapbox-mapa/main/EdificioKuna.jpg';
+    
+    img.onload = () => {
       map.on('load', () => {
-        // Ocultar loader
         document.getElementById('loader').style.display = 'none';
         
         // Desactivar etiquetas
-        const labels = [
-          'showPlaceLabels', 
-          'showRoadLabels', 
-          'showPointOfInterestLabels', 
-          'showTransitLabels'
-        ];
-        labels.forEach(label => {
-          map.setConfigProperty('basemap', label, false);
+        ['showPlaceLabels', 'showRoadLabels', 'showPointOfInterestLabels'].forEach(prop => {
+          map.setConfigProperty('basemap', prop, false);
         });
-
-        // Añadir marcador elevado
-        const markerEl = document.createElement('div');
-        markerEl.className = 'high-altitude-marker';
         
-        new mapboxgl.Marker({
-          element: markerEl,
-          anchor: 'bottom'
-        })
-        .setLngLat(markerLngLat)
-        .addTo(map);
-
-        // Fuente GeoJSON 3D para el área interactiva
-        map.addSource('3d-hover', {
-          type: 'geojson',
-          data: {
-            type: 'Feature',
-            geometry: {
-              type: 'Point',
-              coordinates: [...markerLngLat, markerHeight] // [lng, lat, z]
-            },
-            properties: {
-              tooltip: `
-                <strong>Edificio Kuna</strong><br/>
-                <a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna"
-                   target="_blank">Ver dashboard</a>`
-            }
+        // Interacción directa con el marcador
+        markerEl.addEventListener('mouseenter', () => {
+          if (markerEl.classList.contains('visible')) {
+            popup.setLngLat(targetLngLat).addTo(map);
           }
         });
-
-        // Capa invisible para interacción
-        map.addLayer({
-          id: '3d-hover-layer',
-          type: 'circle',
-          source: '3d-hover',
-          paint: {
-            'circle-radius': 35,
-            'circle-opacity': 0
-          }
-        });
-
-        // Eventos de interacción
-        map.on('mousemove', '3d-hover-layer', (e) => {
-          map.getCanvas().style.cursor = 'pointer';
-          popup.setLngLat(markerLngLat)
-               .setHTML(e.features[0].properties.tooltip)
-               .addTo(map);
-        });
-
-        map.on('mouseleave', '3d-hover-layer', () => {
-          map.getCanvas().style.cursor = '';
+        
+        markerEl.addEventListener('mouseleave', () => {
           popup.remove();
         });
-
-        // Botón de la leyenda
-        document.getElementById('goToModel').addEventListener('click', () => {
-          map.flyTo({
-            center: markerLngLat,
-            zoom: 18,
-            pitch: 75,  // Vista más aérea
-            bearing: -30,
-            speed: 0.5,
-            curve: 2.0,
-            essential: true
-          });
-        });
-
-        // Vuelo inicial automático
-        map.flyTo({
-          center: markerLngLat,
-          zoom: 17,
-          pitch: 70,
-          bearing: -20,
-          duration: 4000,
-          curve: 2.0
-        });
+        
+        // Botón de centrado
+        document.getElementById('goToModel').addEventListener('click', flyToTarget);
+        
+        // Actualizar marcador en cada movimiento
+        map.on('move', updateMarker);
+        map.on('zoom', updateMarker);
+        
+        // Estado inicial
+        updateMarker();
+        
+        // Vuelo inicial (igual al del botón)
+        flyToTarget();
       });
-    });
+    };
   </script>
 </body>
 </html>
