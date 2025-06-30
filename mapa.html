@@ -1,16 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>Casa Cuna - Iluminación Nocturna</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet">
+  <meta charset="utf-8" />
+  <title>Casa Cuna – Modelo con Transporte Público</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js"></script>
   <style>
-    body { margin: 0; padding: 0; }
-    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+    body { margin:0; padding:0; }
+    #map { position:absolute; top:0; bottom:0; width:100%; }
     
-    /* Leyenda */
     #legend {
       position: absolute;
       bottom: 20px;
@@ -29,19 +28,30 @@
       text-decoration: underline;
     }
     
-    /* Botón modo noche */
-    #night-mode {
+    /* Loader visual */
+    #loader {
       position: absolute;
-      top: 20px;
-      right: 20px;
-      background: rgba(255,255,255,0.9);
-      padding: 8px 12px;
-      border-radius: 5px;
-      font-family: sans-serif;
-      font-size: 14px;
-      cursor: pointer;
-      box-shadow: 0 0 5px rgba(0,0,0,0.2);
-      z-index: 1;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    .spinner {
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #3498db;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 10px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
     
     /* Popup personalizado compacto */
@@ -84,18 +94,18 @@
 </head>
 <body>
   <div id="map"></div>
-  
   <div id="legend">
     <strong>Leyenda:</strong><br/>
-    <a id="goToModel">Edificio Kuna</a>
+    <a id="goToModel" role="button" aria-label="Centrar mapa en Edificio Kuna">Edificio Kuna</a>
   </div>
-  
-  <div id="night-mode">🌙 Modo Noche</div>
+  <div id="loader">
+    <div class="spinner"></div>
+    <p>Cargando mapa...</p>
+  </div>
 
   <script>
-    // Configuración inicial
     mapboxgl.accessToken = 'pk.eyJ1IjoiaW9zdW5hYSIsImEiOiJjbWNjeGdvZGwwZTJ3Mmpxc3RwcmhhODI3In0.k4Q1fwjfujblZ11w5aGoCQ';
-    
+
     const modelCoordinates = [-2.9231806364031483, 43.25397648476814];
     const viewKunaCoordinates = [-2.9232, 43.2541];
     const parcelPolygon = {
@@ -108,42 +118,35 @@
         [-2.92324, 43.25414]
       ]]
     };
-    
+
     // Variables para controlar el popup
     let popup = null;
     let isPopupHovered = false;
     let isMarkerHovered = false;
     let popupTimeout = null;
-    
-    // Crear mapa
+
     const map = new mapboxgl.Map({
       container: 'map',
-      style: 'mapbox://styles/mapbox/standard',
-      center: [-2.92, 43.25],
-      zoom: 13,
-      pitch: 30,
-      bearing: 0,
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: viewKunaCoordinates,
+      zoom: 12,
+      pitch: 45,
+      bearing: -300,
       minZoom: 5,
       maxZoom: 22
     });
 
-    // Función para iluminar el modelo en modo noche
-    const illuminateModel = (active) => {
-      map.setPaintProperty('modelo-kuna', 'model-emissive-strength', active ? 0.8 : 0);
-      map.setPaintProperty('modelo-kuna', 'model-emissive-color', active ? '#ffffff' : '#000000');
-    };
-
-    // Crear popup personalizado compacto
+    // Función para crear popup personalizado
     function createPopup() {
       return new mapboxgl.Popup({ 
         className: 'custom-popup',
         closeButton: false,
         closeOnClick: false,
-        offset: [0, -40] // Ajuste fino de posición
+        offset: [0, -40]
       });
     }
 
-    // Mostrar el popup con contenido compacto
+    // Mostrar el popup
     function showPopup() {
       if (!popup) {
         popup = createPopup();
@@ -189,36 +192,76 @@
       }
     }
 
-    map.on('load', () => {
-      // Desactivar etiquetas
-      map.setConfigProperty('basemap', 'showPlaceLabels', false);
-      map.setConfigProperty('basemap', 'showRoadLabels', false);
-      map.setConfigProperty('basemap', 'showPointOfInterestLabels', false);
-      map.setConfigProperty('basemap', 'showTransitLabels', false);
-      
-      // Capa de recorte
-      map.addSource('clip-casa-cuna', {
-        type: 'geojson',
-        data: {
-          type: 'FeatureCollection',
-          features: [{
-            type: 'Feature',
-            geometry: parcelPolygon
-          }]
-        }
+    // Función para ejecutar flyTo y ocultar loader
+    const executeFlyTo = () => {
+      document.getElementById('loader').style.display = 'none';
+      map.flyTo({
+        center: viewKunaCoordinates,
+        zoom: 18,
+        pitch: 45,
+        bearing: -300,
+        speed: 0.5,
+        curve: 1.8,
+        easing: t => t,
+        essential: true
       });
+    };
+
+    // Configuración de capas y eventos
+    map.on('style.load', () => {
+      // Lista de capas que queremos eliminar (personalizable)
+      const layersToRemove = [
+        'poi-label', // Puntos de interés
+        'airport-label', // Aeropuertos
+        'road-number-shield' // Números de carretera (opcional)
+      ];
       
+      layersToRemove.forEach(id => {
+        if (map.getLayer(id)) map.removeLayer(id);
+      });
+
+      // Capas que queremos mantener y configurar:
+      const layersToKeep = [
+        'transit-label', // Transporte público
+        'road-label', // Nombres de calles principales
+        'road-label-small', // Nombres de calles secundarias
+        'transit-stop', // Paradas de transporte
+        'road-oneway-arrow-blue' // Direcciones de calles
+      ];
+
+      // Configurar capas de transporte
+      if (map.getLayer('transit-label')) {
+        map.setLayoutProperty('transit-label', 'visibility', 'visible');
+        map.setPaintProperty('transit-label', 'text-opacity', 0.9);
+        map.setLayoutProperty('transit-label', 'text-size', 12);
+      }
+
+      // Configurar capas de carreteras
+      if (map.getLayer('road-label')) {
+        map.setLayoutProperty('road-label', 'visibility', 'visible');
+        map.setPaintProperty('road-label', 'text-color', '#ffffff');
+        map.setLayoutProperty('road-label', 'text-size', 14);
+      }
+
+      // Añadir capas personalizadas
       map.addLayer({
-        id: 'clip-layer',
-        type: 'clip',
-        source: 'clip-casa-cuna',
-        layout: {
-          'clip-layer-types': ['model'],
-          'clip-layer-scope': ['basemap']
+        id: 'extruded-buildings',
+        type: 'fill-extrusion',
+        source: 'composite',
+        'source-layer': 'building',
+        filter: [
+          'all',
+          ['>', 'height', 15],
+          ['!', ['within', parcelPolygon]]
+        ],
+        paint: {
+          'fill-extrusion-color': '#aaa',
+          'fill-extrusion-height': ['get', 'height'],
+          'fill-extrusion-base': ['coalesce', ['get', 'min_height'], 0],
+          'fill-extrusion-opacity': 0.6
         }
       });
-      
-      // Modelo 3D con propiedades de iluminación
+
       map.addSource('modelo-kuna', {
         type: 'geojson',
         data: {
@@ -229,7 +272,7 @@
           }
         }
       });
-      
+
       map.addLayer({
         id: 'modelo-kuna',
         type: 'model',
@@ -240,48 +283,42 @@
           'model-rotation': [0, 0, 65],
           'model-scale': [1.0, 1.0, 1.0],
           'model-opacity': 1,
-          'model-cast-shadows': false,
-          'model-emissive-strength': 0, // Inicia apagado
-          'model-emissive-color': '#ffffff'
+          'model-cast-shadows': false
         }
       });
-      
-      // Área de hover invisible (cubre todo el modelo)
+
+      // Área de hover
       map.addSource('hover-area', {
         type: 'geojson',
         data: {
           type: 'FeatureCollection',
           features: [{
             type: 'Feature',
-            geometry: parcelPolygon // Mismo polígono que el área de recorte
+            geometry: parcelPolygon
           }]
         }
       });
-      
-      // Capa de hover interactiva (totalmente transparente)
+
       map.addLayer({
         id: 'hover-layer',
         type: 'fill',
         source: 'hover-area',
         paint: {
           'fill-color': '#000',
-          'fill-opacity': 0 // Totalmente transparente
+          'fill-opacity': 0
         }
       });
-      
-      // Evento para tooltip mejorado
+
+      // Evento para tooltip
       let lastCheck = 0;
       const throttleMs = 150;
-      
+
       map.on('mousemove', e => {
         const now = Date.now();
         if (now - lastCheck < throttleMs) return;
         lastCheck = now;
-        
-        const features = map.queryRenderedFeatures(e.point, {
-          layers: ['hover-layer']
-        });
-        
+
+        const features = map.queryRenderedFeatures(e.point, { layers: ['hover-layer'] });
         map.getCanvas().style.cursor = features.length ? 'pointer' : '';
         
         if (features.length) {
@@ -292,13 +329,13 @@
           checkPopupClose();
         }
       });
-      
-      // Botón de la leyenda
+
+      // Botón de leyenda
       document.getElementById('goToModel').addEventListener('click', () => {
         map.flyTo({
           center: viewKunaCoordinates,
           zoom: 18,
-          pitch: 60,
+          pitch: 45,
           bearing: -300,
           speed: 0.5,
           curve: 2.0,
@@ -307,34 +344,9 @@
         });
         showPopup();
       });
-      
-      // FlyTo inicial automático
-      setTimeout(() => {
-        map.flyTo({
-          center: viewKunaCoordinates,
-          zoom: 18,
-          pitch: 60,
-          bearing: -300,
-          speed: 0.5,
-          curve: 2.0,
-          easing: t => t,
-          essential: true
-        });
-      }, 500);
-    });
-    
-    // Modo noche/día con iluminación
-    let isNightMode = false;
-    document.getElementById('night-mode').addEventListener('click', () => {
-      isNightMode = !isNightMode;
-      map.setConfigProperty('basemap', 'lightPreset', isNightMode ? 'night' : 'day');
-      document.getElementById('night-mode').textContent = isNightMode ? '☀️ Modo Día' : '🌙 Modo Noche';
-      
-      // Activar/desactivar iluminación del modelo
-      illuminateModel(isNightMode);
-      
-      // Ajustar sombras (opcional)
-      map.setPaintProperty('modelo-kuna', 'model-cast-shadows', isNightMode);
+
+      // Espera a que los tiles estén cargados
+      map.once('idle', executeFlyTo);
     });
   </script>
 </body>
