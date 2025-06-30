@@ -43,6 +43,43 @@
       box-shadow: 0 0 5px rgba(0,0,0,0.2);
       z-index: 1;
     }
+    
+    /* Popup personalizado compacto */
+    .custom-popup .mapboxgl-popup-content {
+      background: rgba(255,255,255,0.95);
+      border-radius: 8px;
+      box-shadow: 0 3px 15px rgba(0,0,0,0.2);
+      padding: 8px 12px;
+      font-family: sans-serif;
+      pointer-events: auto;
+      width: auto;
+      max-width: none;
+    }
+    .custom-popup .mapboxgl-popup-tip {
+      display: none;
+    }
+    
+    /* Estilo para el enlace compacto */
+    .custom-popup a {
+      color: #4264fb;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 13px;
+      display: inline-block;
+      margin-top: 4px;
+    }
+    .custom-popup a:hover {
+      text-decoration: underline;
+    }
+    
+    /* Contenido del popup centrado */
+    .popup-content {
+      text-align: center;
+      line-height: 1.3;
+    }
+    .popup-content strong {
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
@@ -60,7 +97,6 @@
     mapboxgl.accessToken = 'pk.eyJ1IjoiaW9zdW5hYSIsImEiOiJjbWNjeGdvZGwwZTJ3Mmpxc3RwcmhhODI3In0.k4Q1fwjfujblZ11w5aGoCQ';
     
     const modelCoordinates = [-2.9231806364031483, 43.25397648476814];
-    const hoverCoordinates = [-2.9230922234065213, 43.25412575986106];
     const viewKunaCoordinates = [-2.9232, 43.2541];
     const parcelPolygon = {
       type: 'Polygon',
@@ -73,7 +109,11 @@
       ]]
     };
     
-    const popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: [0, -50] });
+    // Variables para controlar el popup
+    let popup = null;
+    let isPopupHovered = false;
+    let isMarkerHovered = false;
+    let popupTimeout = null;
     
     // Crear mapa
     const map = new mapboxgl.Map({
@@ -92,6 +132,62 @@
       map.setPaintProperty('modelo-kuna', 'model-emissive-strength', active ? 0.8 : 0);
       map.setPaintProperty('modelo-kuna', 'model-emissive-color', active ? '#ffffff' : '#000000');
     };
+
+    // Crear popup personalizado compacto
+    function createPopup() {
+      return new mapboxgl.Popup({ 
+        className: 'custom-popup',
+        closeButton: false,
+        closeOnClick: false,
+        offset: [0, -40] // Ajuste fino de posición
+      });
+    }
+
+    // Mostrar el popup con contenido compacto
+    function showPopup() {
+      if (!popup) {
+        popup = createPopup();
+      }
+      popup.setLngLat(modelCoordinates)
+           .setHTML(`
+             <div class="popup-content">
+               <strong>Edificio Kuna</strong><br/>
+               <a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser"
+                  target="_blank">Ver dashboard</a>
+             </div>`)
+           .addTo(map);
+      
+      // Manejar hover del popup
+      const popupElement = document.querySelector('.mapboxgl-popup');
+      if (popupElement) {
+        popupElement.addEventListener('mouseenter', () => {
+          isPopupHovered = true;
+          clearTimeout(popupTimeout);
+        });
+        
+        popupElement.addEventListener('mouseleave', () => {
+          isPopupHovered = false;
+          checkPopupClose();
+        });
+      }
+    }
+
+    // Ocultar el popup con retraso
+    function hidePopup() {
+      popupTimeout = setTimeout(() => {
+        if (!isMarkerHovered && !isPopupHovered && popup) {
+          popup.remove();
+          popup = null;
+        }
+      }, 300);
+    }
+
+    // Verificar si se debe cerrar el popup
+    function checkPopupClose() {
+      if (!isMarkerHovered && !isPopupHovered) {
+        hidePopup();
+      }
+    }
 
     map.on('load', () => {
       // Desactivar etiquetas
@@ -150,36 +246,30 @@
         }
       });
       
-      // Tooltip interactivo
+      // Área de hover invisible (cubre todo el modelo)
       map.addSource('hover-area', {
         type: 'geojson',
         data: {
           type: 'FeatureCollection',
           features: [{
             type: 'Feature',
-            geometry: { type: 'Point', coordinates: hoverCoordinates },
-            properties: {
-              tooltip: `
-                <strong>Edificio Kuna</strong><br/>
-                <a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser"
-                   target="_blank">Ver dashboard</a>`
-            }
+            geometry: parcelPolygon // Mismo polígono que el área de recorte
           }]
         }
       });
       
+      // Capa de hover interactiva (totalmente transparente)
       map.addLayer({
         id: 'hover-layer',
-        type: 'circle',
+        type: 'fill',
         source: 'hover-area',
         paint: {
-          'circle-radius': 20,
-          'circle-color': '#000',
-          'circle-opacity': 0
+          'fill-color': '#000',
+          'fill-opacity': 0 // Totalmente transparente
         }
       });
       
-      // Evento para tooltip
+      // Evento para tooltip mejorado
       let lastCheck = 0;
       const throttleMs = 150;
       
@@ -195,11 +285,11 @@
         map.getCanvas().style.cursor = features.length ? 'pointer' : '';
         
         if (features.length) {
-          popup.setLngLat(modelCoordinates)
-                .setHTML(features[0].properties.tooltip)
-                .addTo(map);
+          isMarkerHovered = true;
+          showPopup();
         } else {
-          popup.remove();
+          isMarkerHovered = false;
+          checkPopupClose();
         }
       });
       
@@ -214,9 +304,7 @@
           curve: 2.0,
           essential: true
         });
-        popup.setLngLat(modelCoordinates)
-              .setHTML(`<strong>Edificio Kuna</strong><br/><a href='https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser' target='_blank'>Ver dashboard</a>`)
-              .addTo(map);
+        showPopup();
       });
       
       // FlyTo inicial automático
