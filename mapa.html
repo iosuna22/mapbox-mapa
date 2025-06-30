@@ -2,14 +2,15 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Casa Cuna – Modelo con Transporte Público</title>
+  <title>Casa Cuna - Marcador con Popup Superior</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js"></script>
   <style>
-    body { margin:0; padding:0; }
-    #map { position:absolute; top:0; bottom:0; width:100%; }
+    body { margin: 0; padding: 0; }
+    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
     
+    /* Leyenda */
     #legend {
       position: absolute;
       bottom: 20px;
@@ -28,161 +29,203 @@
       text-decoration: underline;
     }
     
-    /* Loader visual */
+    /* Marcador flotante */
+    .smart-marker {
+      background-image: url('https://raw.githubusercontent.com/iosuna22/mapbox-mapa/main/EdificioKuna.jpg');
+      background-size: cover;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      border: 2px solid white;
+      box-shadow: 0 0 20px rgba(0,0,0,0.6);
+      transform: translate(-50%, -50%) translateY(-100px);
+      position: absolute;
+      z-index: 10;
+      opacity: 0;
+      transition: opacity 0.5s, transform 0.3s;
+      cursor: pointer;
+    }
+    .smart-marker.visible {
+      opacity: 1;
+    }
+    .smart-marker:hover {
+      transform: translate(-50%, -50%) translateY(-105px) scale(1.1);
+      box-shadow: 0 0 25px rgba(0,0,0,0.8);
+    }
+    
+    /* Loader */
     #loader {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      z-index: 10;
-      background: rgba(255, 255, 255, 0.8);
+      background: rgba(255,255,255,0.9);
       padding: 20px;
       border-radius: 10px;
       text-align: center;
+      z-index: 100;
     }
     .spinner {
-      border: 5px solid #f3f3f3;
-      border-top: 5px solid #3498db;
+      border: 5px solid rgba(0,0,0,0.1);
+      border-top: 5px solid #4264fb;
       border-radius: 50%;
       width: 50px;
       height: 50px;
       animation: spin 1s linear infinite;
-      margin: 0 auto 10px;
+      margin: 0 auto 15px;
     }
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
     
-    /* Popup personalizado compacto */
+    /* Popup personalizado */
     .custom-popup .mapboxgl-popup-content {
       background: rgba(255,255,255,0.95);
       border-radius: 8px;
       box-shadow: 0 3px 15px rgba(0,0,0,0.2);
-      padding: 8px 12px;
+      padding: 12px;
       font-family: sans-serif;
-      pointer-events: auto;
-      width: auto;
-      max-width: none;
+      pointer-events: auto; /* Permitir interacción con el popup */
     }
     .custom-popup .mapboxgl-popup-tip {
       display: none;
     }
     
-    /* Estilo para el enlace compacto */
+    /* Estilo para el enlace */
     .custom-popup a {
       color: #4264fb;
       text-decoration: none;
       font-weight: bold;
-      font-size: 13px;
       display: inline-block;
-      margin-top: 4px;
+      padding: 2px 0;
     }
     .custom-popup a:hover {
       text-decoration: underline;
     }
     
-    /* Contenido del popup centrado */
-    .popup-content {
-      text-align: center;
-      line-height: 1.3;
-    }
-    .popup-content strong {
-      font-size: 14px;
+    /* Zona segura alrededor del popup */
+    .popup-safe-area {
+      position: absolute;
+      width: 200px;
+      height: 120px;
+      transform: translate(-50%, -100%);
+      z-index: 5;
+      pointer-events: none;
     }
   </style>
 </head>
 <body>
   <div id="map"></div>
+  
+  <!-- Marcador flotante -->
+  <div id="floating-marker" class="smart-marker"></div>
+  
   <div id="legend">
     <strong>Leyenda:</strong><br/>
-    <a id="goToModel" role="button" aria-label="Centrar mapa en Edificio Kuna">Edificio Kuna</a>
+    <a id="goToModel" role="button" aria-label="Centrar mapa">Edificio Kuna</a>
   </div>
+  
   <div id="loader">
     <div class="spinner"></div>
-    <p>Cargando mapa...</p>
+    <p>Cargando vista 3D...</p>
   </div>
 
   <script>
     mapboxgl.accessToken = 'pk.eyJ1IjoiaW9zdW5hYSIsImEiOiJjbWNjeGdvZGwwZTJ3Mmpxc3RwcmhhODI3In0.k4Q1fwjfujblZ11w5aGoCQ';
-
-    const modelCoordinates = [-2.9231806364031483, 43.25397648476814];
-    const viewKunaCoordinates = [-2.9232, 43.2541];
-    const parcelPolygon = {
-      type: 'Polygon',
-      coordinates: [[
-        [-2.92324, 43.25414],
-        [-2.92300, 43.25414],
-        [-2.92300, 43.25403],
-        [-2.92324, 43.25403],
-        [-2.92324, 43.25414]
-      ]]
-    };
-
-    // Variables para controlar el popup
-    let popup = null;
-    let isPopupHovered = false;
-    let isMarkerHovered = false;
-    let popupTimeout = null;
-
+    
+    // Configuración
+    const targetLngLat = [-2.9230369118412556, 43.254037226606236];
+    const visibilityRadius = 0.0003; // Radio de visibilidad (~30 metros)
+    
     const map = new mapboxgl.Map({
       container: 'map',
-      style: 'mapbox://styles/mapbox/streets-v12',
-      center: viewKunaCoordinates,
-      zoom: 12,
-      pitch: 45,
-      bearing: -300,
-      minZoom: 5,
-      maxZoom: 22
+      style: 'mapbox://styles/mapbox/standard',
+      center: [-2.9232, 43.2541],
+      zoom: 15,
+      pitch: 60,
+      bearing: -20
     });
 
-    // Función para crear popup personalizado
+    // Elementos
+    const markerEl = document.getElementById('floating-marker');
+    let popupInstance = null;
+    let popupTimeout = null;
+    let isPopupHovered = false;
+    let isMarkerHovered = false;
+
+    // Crear popup con offset mayor
     function createPopup() {
       return new mapboxgl.Popup({ 
         className: 'custom-popup',
         closeButton: false,
-        closeOnClick: false,
-        offset: [0, -40]
+        offset: { bottom: [0, -150] } // Posición más arriba
+      }).setHTML('<strong>Edificio Kuna</strong><br/><a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna" target="_blank" id="popup-link">Ver dashboard</a>');
+    }
+
+    // Función para calcular distancia
+    function isNearTarget() {
+      const center = map.getCenter();
+      const dx = center.lng - targetLngLat[0];
+      const dy = center.lat - targetLngLat[1];
+      return Math.sqrt(dx*dx + dy*dy) < visibilityRadius;
+    }
+
+    // Actualizar visibilidad y posición del marcador
+    function updateMarker() {
+      const near = isNearTarget();
+      markerEl.classList.toggle('visible', near);
+      
+      if (near) {
+        const pixelPos = map.project(targetLngLat);
+        markerEl.style.left = `${pixelPos.x}px`;
+        markerEl.style.top = `${pixelPos.y}px`;
+      }
+    }
+
+    // FlyTo igual al del botón de leyenda
+    function flyToTarget() {
+      map.flyTo({
+        center: targetLngLat,
+        zoom: 18,
+        pitch: 60,
+        bearing: -300,
+        speed: 0.5,
+        curve: 2.0,
+        easing: t => t,
+        essential: true
       });
     }
 
     // Mostrar el popup
     function showPopup() {
-      if (!popup) {
-        popup = createPopup();
-      }
-      popup.setLngLat(modelCoordinates)
-           .setHTML(`
-             <div class="popup-content">
-               <strong>Edificio Kuna</strong><br/>
-               <a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna?orgId=1&from=now-5m&to=now&timezone=browser"
-                  target="_blank">Ver dashboard</a>
-             </div>`)
-           .addTo(map);
-      
-      // Manejar hover del popup
-      const popupElement = document.querySelector('.mapboxgl-popup');
-      if (popupElement) {
-        popupElement.addEventListener('mouseenter', () => {
-          isPopupHovered = true;
-          clearTimeout(popupTimeout);
-        });
+      if (!popupInstance && markerEl.classList.contains('visible')) {
+        popupInstance = createPopup().setLngLat(targetLngLat).addTo(map);
         
-        popupElement.addEventListener('mouseleave', () => {
-          isPopupHovered = false;
-          checkPopupClose();
-        });
+        // Manejar hover del popup
+        const popupElement = document.querySelector('.mapboxgl-popup');
+        if (popupElement) {
+          popupElement.addEventListener('mouseenter', () => {
+            isPopupHovered = true;
+            clearTimeout(popupTimeout);
+          });
+          
+          popupElement.addEventListener('mouseleave', () => {
+            isPopupHovered = false;
+            checkPopupClose();
+          });
+        }
       }
     }
 
     // Ocultar el popup con retraso
     function hidePopup() {
       popupTimeout = setTimeout(() => {
-        if (!isMarkerHovered && !isPopupHovered && popup) {
-          popup.remove();
-          popup = null;
+        if (!isMarkerHovered && !isPopupHovered && popupInstance) {
+          popupInstance.remove();
+          popupInstance = null;
         }
-      }, 300);
+      }, 300); // Retraso de 300ms para permitir mover el ratón al popup
     }
 
     // Verificar si se debe cerrar el popup
@@ -192,162 +235,44 @@
       }
     }
 
-    // Función para ejecutar flyTo y ocultar loader
-    const executeFlyTo = () => {
-      document.getElementById('loader').style.display = 'none';
-      map.flyTo({
-        center: viewKunaCoordinates,
-        zoom: 18,
-        pitch: 45,
-        bearing: -300,
-        speed: 0.5,
-        curve: 1.8,
-        easing: t => t,
-        essential: true
-      });
-    };
-
-    // Configuración de capas y eventos
-    map.on('style.load', () => {
-      // Lista de capas que queremos eliminar (personalizable)
-      const layersToRemove = [
-        'poi-label', // Puntos de interés
-        'airport-label', // Aeropuertos
-        'road-number-shield' // Números de carretera (opcional)
-      ];
-      
-      layersToRemove.forEach(id => {
-        if (map.getLayer(id)) map.removeLayer(id);
-      });
-
-      // Capas que queremos mantener y configurar:
-      const layersToKeep = [
-        'transit-label', // Transporte público
-        'road-label', // Nombres de calles principales
-        'road-label-small', // Nombres de calles secundarias
-        'transit-stop', // Paradas de transporte
-        'road-oneway-arrow-blue' // Direcciones de calles
-      ];
-
-      // Configurar capas de transporte
-      if (map.getLayer('transit-label')) {
-        map.setLayoutProperty('transit-label', 'visibility', 'visible');
-        map.setPaintProperty('transit-label', 'text-opacity', 0.9);
-        map.setLayoutProperty('transit-label', 'text-size', 12);
-      }
-
-      // Configurar capas de carreteras
-      if (map.getLayer('road-label')) {
-        map.setLayoutProperty('road-label', 'visibility', 'visible');
-        map.setPaintProperty('road-label', 'text-color', '#ffffff');
-        map.setLayoutProperty('road-label', 'text-size', 14);
-      }
-
-      // Añadir capas personalizadas
-      map.addLayer({
-        id: 'extruded-buildings',
-        type: 'fill-extrusion',
-        source: 'composite',
-        'source-layer': 'building',
-        filter: [
-          'all',
-          ['>', 'height', 15],
-          ['!', ['within', parcelPolygon]]
-        ],
-        paint: {
-          'fill-extrusion-color': '#aaa',
-          'fill-extrusion-height': ['get', 'height'],
-          'fill-extrusion-base': ['coalesce', ['get', 'min_height'], 0],
-          'fill-extrusion-opacity': 0.6
-        }
-      });
-
-      map.addSource('modelo-kuna', {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          geometry: { type: 'Point', coordinates: modelCoordinates },
-          properties: {
-            'model-id': 'https://raw.githubusercontent.com/iosuna22/mapbox-mapa/main/edificio.glb'
-          }
-        }
-      });
-
-      map.addLayer({
-        id: 'modelo-kuna',
-        type: 'model',
-        source: 'modelo-kuna',
-        slot: 'middle',
-        layout: { 'model-id': ['get', 'model-id'] },
-        paint: {
-          'model-rotation': [0, 0, 65],
-          'model-scale': [1.0, 1.0, 1.0],
-          'model-opacity': 1,
-          'model-cast-shadows': false
-        }
-      });
-
-      // Área de hover
-      map.addSource('hover-area', {
-        type: 'geojson',
-        data: {
-          type: 'FeatureCollection',
-          features: [{
-            type: 'Feature',
-            geometry: parcelPolygon
-          }]
-        }
-      });
-
-      map.addLayer({
-        id: 'hover-layer',
-        type: 'fill',
-        source: 'hover-area',
-        paint: {
-          'fill-color': '#000',
-          'fill-opacity': 0
-        }
-      });
-
-      // Evento para tooltip
-      let lastCheck = 0;
-      const throttleMs = 150;
-
-      map.on('mousemove', e => {
-        const now = Date.now();
-        if (now - lastCheck < throttleMs) return;
-        lastCheck = now;
-
-        const features = map.queryRenderedFeatures(e.point, { layers: ['hover-layer'] });
-        map.getCanvas().style.cursor = features.length ? 'pointer' : '';
+    // Precargar imagen y configurar mapa
+    const img = new Image();
+    img.src = 'https://raw.githubusercontent.com/iosuna22/mapbox-mapa/main/EdificioKuna.jpg';
+    
+    img.onload = () => {
+      map.on('load', () => {
+        document.getElementById('loader').style.display = 'none';
         
-        if (features.length) {
+        // Desactivar etiquetas
+        ['showPlaceLabels', 'showRoadLabels', 'showPointOfInterestLabels'].forEach(prop => {
+          map.setConfigProperty('basemap', prop, false);
+        });
+        
+        // Interacción con el marcador
+        markerEl.addEventListener('mouseenter', () => {
           isMarkerHovered = true;
           showPopup();
-        } else {
+        });
+        
+        markerEl.addEventListener('mouseleave', () => {
           isMarkerHovered = false;
           checkPopupClose();
-        }
-      });
-
-      // Botón de leyenda
-      document.getElementById('goToModel').addEventListener('click', () => {
-        map.flyTo({
-          center: viewKunaCoordinates,
-          zoom: 18,
-          pitch: 45,
-          bearing: -300,
-          speed: 0.5,
-          curve: 2.0,
-          easing: t => t,
-          essential: true
         });
-        showPopup();
+        
+        // Botón de centrado
+        document.getElementById('goToModel').addEventListener('click', flyToTarget);
+        
+        // Actualizar marcador en cada movimiento
+        map.on('move', updateMarker);
+        map.on('zoom', updateMarker);
+        
+        // Estado inicial
+        updateMarker();
+        
+        // Vuelo inicial
+        flyToTarget();
       });
-
-      // Espera a que los tiles estén cargados
-      map.once('idle', executeFlyTo);
-    });
+    };
   </script>
 </body>
 </html>
