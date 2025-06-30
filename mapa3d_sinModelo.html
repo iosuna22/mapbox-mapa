@@ -203,7 +203,9 @@
             zoom: 18,
             pitch: 75,  // Vista más aérea
             bearing: -30,
-            duration: 2000
+            speed: 0.5,
+            curve: 2.0,
+            essential: true
           });
         });
 
@@ -213,7 +215,8 @@
           zoom: 17,
           pitch: 70,
           bearing: -20,
-          duration: 4000
+          duration: 4000,
+          curve: 2.0
         });
       });
     });
