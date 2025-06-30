@@ -2,13 +2,14 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Casa Cuna – Modelo sin superposición</title>
+  <title>Casa Cuna – Modelo con Transporte Público</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css" rel="stylesheet" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js"></script>
   <style>
     body { margin:0; padding:0; }
     #map { position:absolute; top:0; bottom:0; width:100%; }
+    
     #legend {
       position: absolute;
       bottom: 20px;
@@ -26,6 +27,7 @@
       cursor: pointer;
       text-decoration: underline;
     }
+    
     /* Loader visual */
     #loader {
       position: absolute;
@@ -96,7 +98,6 @@
     <strong>Leyenda:</strong><br/>
     <a id="goToModel" role="button" aria-label="Centrar mapa en Edificio Kuna">Edificio Kuna</a>
   </div>
-  <!-- Loader visual -->
   <div id="loader">
     <div class="spinner"></div>
     <p>Cargando mapa...</p>
@@ -208,24 +209,41 @@
 
     // Configuración de capas y eventos
     map.on('style.load', () => {
-      // Eliminar TODOS los símbolos (labels de calles, POIs, etc.)
-      const layers = map.getStyle().layers;
-      for (const layer of layers) {
-        if (layer.type === 'symbol') {
-          try { map.removeLayer(layer.id); } catch (e) {}
-        }
-      }
-
-      // Opcional: Eliminar iconos de POIs (si existen en otras capas)
+      // Lista de capas que queremos eliminar (personalizable)
       const layersToRemove = [
-        'poi-label', 'transit-label', 'airport-label', 
-        'road-number-shield', 'road-label'
+        'poi-label', // Puntos de interés
+        'airport-label', // Aeropuertos
+        'road-number-shield' // Números de carretera (opcional)
       ];
+      
       layersToRemove.forEach(id => {
         if (map.getLayer(id)) map.removeLayer(id);
       });
 
-      // Añadir capas (extruded-buildings, modelo-kuna, hover-area)
+      // Capas que queremos mantener y configurar:
+      const layersToKeep = [
+        'transit-label', // Transporte público
+        'road-label', // Nombres de calles principales
+        'road-label-small', // Nombres de calles secundarias
+        'transit-stop', // Paradas de transporte
+        'road-oneway-arrow-blue' // Direcciones de calles
+      ];
+
+      // Configurar capas de transporte
+      if (map.getLayer('transit-label')) {
+        map.setLayoutProperty('transit-label', 'visibility', 'visible');
+        map.setPaintProperty('transit-label', 'text-opacity', 0.9);
+        map.setLayoutProperty('transit-label', 'text-size', 12);
+      }
+
+      // Configurar capas de carreteras
+      if (map.getLayer('road-label')) {
+        map.setLayoutProperty('road-label', 'visibility', 'visible');
+        map.setPaintProperty('road-label', 'text-color', '#ffffff');
+        map.setLayoutProperty('road-label', 'text-size', 14);
+      }
+
+      // Añadir capas personalizadas
       map.addLayer({
         id: 'extruded-buildings',
         type: 'fill-extrusion',
@@ -269,30 +287,29 @@
         }
       });
 
-      // Área de hover MUCHO más grande (cubre todo el modelo)
+      // Área de hover
       map.addSource('hover-area', {
         type: 'geojson',
         data: {
           type: 'FeatureCollection',
           features: [{
             type: 'Feature',
-            geometry: parcelPolygon // Usamos el mismo polígono que el área de recorte
+            geometry: parcelPolygon
           }]
         }
       });
 
-      // Capa de hover interactiva (totalmente transparente)
       map.addLayer({
         id: 'hover-layer',
         type: 'fill',
         source: 'hover-area',
         paint: {
           'fill-color': '#000',
-          'fill-opacity': 0 // Totalmente transparente
+          'fill-opacity': 0
         }
       });
 
-      // Evento para tooltip mejorado
+      // Evento para tooltip
       let lastCheck = 0;
       const throttleMs = 150;
 
@@ -328,7 +345,7 @@
         showPopup();
       });
 
-      // Espera a que los tiles estén cargados (evento 'idle')
+      // Espera a que los tiles estén cargados
       map.once('idle', executeFlyTo);
     });
   </script>
