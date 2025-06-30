@@ -90,6 +90,16 @@
     .custom-popup .mapboxgl-popup-tip {
       display: none;
     }
+    
+    /* Estilo para el enlace dentro del popup */
+    .custom-popup a {
+      color: #4264fb;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .custom-popup a:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
@@ -126,11 +136,14 @@
 
     // Elementos
     const markerEl = document.getElementById('floating-marker');
+    let popupVisible = false;
+    
+    // Crear popup con offset mayor para que aparezca más arriba
     const popup = new mapboxgl.Popup({ 
       className: 'custom-popup',
       closeButton: false,
-      offset: { bottom: [0, -120] } // Posición exacta encima del marcador
-    }).setHTML('<strong>Edificio Kuna</strong><br/><a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna" target="_blank">Ver dashboard</a>');
+      offset: { bottom: [0, -150] } // Aumentamos este valor para que aparezca más arriba
+    }).setHTML('<strong>Edificio Kuna</strong><br/><a href="https://predashboard.novha.io:3000/d/feof29yx7pkowb/bbk-kuna" target="_blank" id="popup-link">Ver dashboard</a>');
 
     // Función para calcular distancia
     function isNearTarget() {
@@ -178,15 +191,39 @@
           map.setConfigProperty('basemap', prop, false);
         });
         
-        // Interacción directa con el marcador
+        // Interacción mejorada con el marcador y popup
         markerEl.addEventListener('mouseenter', () => {
           if (markerEl.classList.contains('visible')) {
             popup.setLngLat(targetLngLat).addTo(map);
+            popupVisible = true;
           }
         });
         
-        markerEl.addEventListener('mouseleave', () => {
-          popup.remove();
+        // Permitir interactuar con el popup antes de que desaparezca
+        markerEl.addEventListener('mouseleave', (e) => {
+          // Verificar si el ratón se está moviendo hacia el popup
+          const popupElement = document.querySelector('.mapboxgl-popup');
+          if (popupElement) {
+            // Agregar un pequeño retraso para permitir que el usuario llegue al popup
+            setTimeout(() => {
+              if (!popupElement.matches(':hover')) {
+                popup.remove();
+                popupVisible = false;
+              }
+            }, 200);
+          }
+        });
+        
+        // Manejar el cierre del popup cuando el ratón sale de él
+        map.on('mousemove', (e) => {
+          if (popupVisible) {
+            const popupElement = document.querySelector('.mapboxgl-popup');
+            if (popupElement && !popupElement.matches(':hover') && 
+                !markerEl.matches(':hover')) {
+              popup.remove();
+              popupVisible = false;
+            }
+          }
         });
         
         // Botón de centrado
